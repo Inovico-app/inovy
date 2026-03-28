@@ -37,8 +37,24 @@ export const cancelOrganizationDeletion = authorizedActionClient
       organizationId: z.string().uuid(),
     }),
   )
-  .action(async ({ parsedInput }) => {
+  .action(async ({ parsedInput, ctx }) => {
     const { organizationId } = parsedInput;
+
+    if (
+      ctx.organizationId &&
+      ctx.organizationId !== organizationId &&
+      ctx.user?.role !== "superadmin"
+    ) {
+      return resultToActionResponse(
+        err(
+          ActionErrors.forbidden(
+            "Cannot cancel deletion for another organization",
+            undefined,
+            "cancelOrganizationDeletion",
+          ),
+        ),
+      );
+    }
 
     const org = await OrganizationQueries.findByIdDirect(organizationId);
 

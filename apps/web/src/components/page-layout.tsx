@@ -3,6 +3,7 @@ import { DeletionWarningBanner } from "./deletion-warning-banner";
 import { Sidebar } from "./sidebar";
 import { TopBar } from "./top-bar";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { logger } from "@/lib/logger";
 import { OrganizationQueries } from "@/server/data-access/organization.queries";
 
 interface PageLayoutProps {
@@ -18,16 +19,25 @@ async function DeletionBannerLoader() {
 
   if (!organization?.id) return null;
 
-  const orgRecord = await OrganizationQueries.findByIdDirect(organization.id);
+  try {
+    const orgRecord = await OrganizationQueries.findByIdDirect(organization.id);
 
-  if (!orgRecord?.scheduledDeletionAt) return null;
+    if (!orgRecord?.scheduledDeletionAt) return null;
 
-  return (
-    <DeletionWarningBanner
-      organizationId={organization.id}
-      scheduledDeletionAt={orgRecord.scheduledDeletionAt.toISOString()}
-    />
-  );
+    return (
+      <DeletionWarningBanner
+        organizationId={organization.id}
+        scheduledDeletionAt={orgRecord.scheduledDeletionAt.toISOString()}
+      />
+    );
+  } catch (error) {
+    logger.error("Failed to load deletion banner", {
+      component: "DeletionBannerLoader",
+      organizationId: organization.id,
+      error: error instanceof Error ? error : new Error(String(error)),
+    });
+    return null;
+  }
 }
 
 export function PageLayout({ children }: PageLayoutProps) {

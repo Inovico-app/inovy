@@ -86,7 +86,16 @@ async function OrganizationContent() {
         },
       ),
     ]),
-    OrganizationQueries.findByIdDirect(organizationId),
+    canEdit
+      ? OrganizationQueries.findByIdDirect(organizationId).catch((error) => {
+          logger.error("Failed to fetch organization record", {
+            component: "OrganizationPage",
+            organizationId,
+            error: error instanceof Error ? error : new Error(String(error)),
+          });
+          return null;
+        })
+      : Promise.resolve(null),
   ]);
 
   const members = membersResult.isOk() ? membersResult.value : [];
@@ -266,7 +275,6 @@ async function OrganizationContent() {
           <OrganizationDangerZone
             organizationId={organizationId}
             organizationName={orgName}
-            memberCount={members.length}
             scheduledDeletionAt={scheduledDeletionAt}
           />
         </div>

@@ -32,7 +32,7 @@ export function DeletionWarningBanner({
         router.refresh();
       },
       onError: ({ error }) => {
-        toast.error(error.serverError ?? t("deleteOrg.cancelledSuccess"));
+        toast.error(error.serverError ?? t("deleteOrg.cancelFailed"));
       },
     },
   );

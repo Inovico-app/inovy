@@ -27,7 +27,7 @@ import {
 } from "@/server/db/schema";
 import { QdrantClientService } from "@/server/services/rag/qdrant.service";
 import { getStorageProvider } from "@/server/services/storage";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 
 const COMPONENT = "OrganizationDeletionService";
@@ -117,18 +117,17 @@ export class OrganizationDeletionService {
       .from(knowledgeBaseDocuments)
       .where(eq(knowledgeBaseDocuments.scopeId, organizationId));
 
-    // Fetch project-scoped documents
-    const projectDocs: Array<{ id: string; fileUrl: string }> = [];
-    for (const projectId of projectIds) {
-      const docs = await db
-        .select({
-          id: knowledgeBaseDocuments.id,
-          fileUrl: knowledgeBaseDocuments.fileUrl,
-        })
-        .from(knowledgeBaseDocuments)
-        .where(eq(knowledgeBaseDocuments.scopeId, projectId));
-      projectDocs.push(...docs);
-    }
+    // Fetch project-scoped documents in one query
+    const projectDocs =
+      projectIds.length > 0
+        ? await db
+            .select({
+              id: knowledgeBaseDocuments.id,
+              fileUrl: knowledgeBaseDocuments.fileUrl,
+            })
+            .from(knowledgeBaseDocuments)
+            .where(inArray(knowledgeBaseDocuments.scopeId, projectIds))
+        : [];
 
     const allDocs = [...orgDocs, ...projectDocs];
     if (allDocs.length === 0) return;
@@ -417,15 +416,15 @@ export class OrganizationDeletionService {
 
     const projectIds = orgProjects.map((p) => p.id);
 
-    // Delete project-scoped knowledge base entries
-    for (const projectId of projectIds) {
+    // Delete project-scoped knowledge base entries (batched)
+    if (projectIds.length > 0) {
       await this.deleteTableSafe(
-        `knowledge_base_entries (project ${projectId})`,
+        "knowledge_base_entries (project-scoped)",
         organizationId,
         () =>
           db
             .delete(knowledgeBaseEntries)
-            .where(eq(knowledgeBaseEntries.scopeId, projectId)),
+            .where(inArray(knowledgeBaseEntries.scopeId, projectIds)),
       );
     }
 
@@ -445,14 +444,14 @@ export class OrganizationDeletionService {
           .where(eq(knowledgeBaseDocuments.scopeId, organizationId)),
     );
 
-    for (const projectId of projectIds) {
+    if (projectIds.length > 0) {
       await this.deleteTableSafe(
-        `knowledge_base_documents (project ${projectId})`,
+        "knowledge_base_documents (project-scoped)",
         organizationId,
         () =>
           db
             .delete(knowledgeBaseDocuments)
-            .where(eq(knowledgeBaseDocuments.scopeId, projectId)),
+            .where(inArray(knowledgeBaseDocuments.scopeId, projectIds)),
       );
     }
 

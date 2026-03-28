@@ -42,13 +42,28 @@ export const scheduleOrganizationDeletion = authorizedActionClient
   )
   .action(async ({ parsedInput, ctx }) => {
     const { organizationId, confirmName } = parsedInput;
-    const userId = ctx.user?.id;
 
-    if (!userId) {
+    if (!ctx.user) {
       return resultToActionResponse(
         err(
           ActionErrors.unauthenticated(
-            "User ID not found in context",
+            "User context required",
+            "scheduleOrganizationDeletion",
+          ),
+        ),
+      );
+    }
+
+    if (
+      ctx.organizationId &&
+      ctx.organizationId !== organizationId &&
+      ctx.user.role !== "superadmin"
+    ) {
+      return resultToActionResponse(
+        err(
+          ActionErrors.forbidden(
+            "Cannot schedule deletion for another organization",
+            undefined,
             "scheduleOrganizationDeletion",
           ),
         ),
@@ -96,7 +111,7 @@ export const scheduleOrganizationDeletion = authorizedActionClient
         .update(organizations)
         .set({
           scheduledDeletionAt,
-          deletionRequestedById: userId,
+          deletionRequestedById: ctx.user.id,
         })
         .where(eq(organizations.id, organizationId));
 
