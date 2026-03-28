@@ -13,6 +13,10 @@ import { err, ok } from "neverthrow";
 import { createGuardedModel } from "../ai/middleware";
 import { KnowledgeModule } from "./knowledge";
 import { NotificationService } from "./notification.service";
+import { AIInsightsQueries } from "@/server/data-access/ai-insights.queries";
+import type { AIInsight } from "@/server/db/schema/ai-insights";
+import { OrganizationQueries } from "@/server/data-access/organization.queries";
+import { ParticipantMatcher } from "./participant-matcher.service";
 
 interface ExtractedTask {
   title: string;
@@ -152,10 +156,62 @@ export class TaskExtractionService {
         );
       }
 
-      // Create tasks in database
+      // Fetch data needed for participant matching
+      const [orgMembers, insightsList] = await Promise.all([
+        OrganizationQueries.getMembersDirect(organizationId),
+        AIInsightsQueries.getInsightsByRecordingId(recordingId),
+      ]);
+
+      // Get speaker mappings from the transcription insight
+      const transcriptionInsight = insightsList.find(
+        (i: AIInsight) => i.insightType === "transcription",
+      );
+      const speakerUserIds = transcriptionInsight?.speakerUserIds as
+        | Record<string, string>
+        | null
+        | undefined;
+      const speakerNames = transcriptionInsight?.speakerNames as
+        | Record<string, string>
+        | null
+        | undefined;
+
+      // Create tasks in database with auto-assignment
       const createdTasks = [];
       for (const task of extractionResult.tasks) {
         try {
+          // Try to match assignee to org member
+          let assigneeId: string | null = null;
+          if (task.assigneeName) {
+            // Find speaker index by reverse-looking up the name in speakerNames
+            let speakerIndex: number | undefined;
+            if (speakerNames) {
+              const entry = Object.entries(speakerNames).find(
+                ([, name]) =>
+                  name.toLowerCase() === task.assigneeName!.toLowerCase(),
+              );
+              if (entry) {
+                speakerIndex = parseInt(entry[0], 10);
+              }
+            }
+
+            const match = ParticipantMatcher.match(
+              task.assigneeName,
+              orgMembers,
+              speakerUserIds,
+              speakerIndex,
+            );
+
+            if (match.userId) {
+              assigneeId = match.userId;
+              logger.info("Auto-assigned task", {
+                component: "TaskExtractionService.extractTasks",
+                assigneeName: task.assigneeName,
+                assigneeId,
+                matchType: match.matchType,
+              });
+            }
+          }
+
           const createdTask = await TasksQueries.createTask({
             recordingId,
             projectId,
@@ -163,7 +219,7 @@ export class TaskExtractionService {
             description: task.description ?? null,
             priority: task.priority,
             status: "pending",
-            assigneeId: null,
+            assigneeId,
             assigneeName: task.assigneeName ?? null,
             dueDate: task.dueDate ? new Date(task.dueDate) : null,
             confidenceScore: task.confidenceScore ?? null,
@@ -189,7 +245,7 @@ export class TaskExtractionService {
         totalAttempted: extractionResult.tasks.length,
       });
 
-      // Create success notification
+      // Create success notification for recording owner
       const recording =
         await RecordingsQueries.selectRecordingById(recordingId);
       if (recording) {
@@ -207,6 +263,29 @@ export class TaskExtractionService {
             tasksCount: createdTasks.length,
           },
         });
+
+        // Send task_assigned notifications to assignees
+        for (const createdTask of createdTasks) {
+          if (
+            createdTask.assigneeId &&
+            createdTask.assigneeId !== recording.createdById
+          ) {
+            await NotificationService.createNotification({
+              recordingId,
+              projectId: recording.projectId,
+              userId: createdTask.assigneeId,
+              organizationId: recording.organizationId,
+              type: "task_assigned",
+              title: "Nieuwe taak toegewezen",
+              message: `Je bent toegewezen aan de taak: "${createdTask.title}"`,
+              metadata: {
+                taskId: createdTask.id,
+                recordingId,
+                projectId,
+              },
+            });
+          }
+        }
       }
 
       return ok({
