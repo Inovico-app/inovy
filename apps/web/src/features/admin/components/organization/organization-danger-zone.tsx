@@ -15,7 +15,7 @@ import { DeleteOrganizationDialog } from "./delete-organization-dialog";
 interface OrganizationDangerZoneProps {
   organizationId: string;
   organizationName: string;
-  scheduledDeletionAt?: Date | null;
+  scheduledDeletionAt: Date | null;
 }
 
 export function OrganizationDangerZone({
