@@ -18,6 +18,7 @@ import {
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useState } from "react";
+import { UploadDocumentButton } from "./upload-document-button";
 
 /** Narrow projection — avoids serializing extractedText across the RSC boundary */
 export interface KnowledgeDocumentSummary {
@@ -121,12 +122,7 @@ export function KnowledgeContextIndicator({
             <FileTextIcon className="h-4 w-4" />
             <span>{t("knowledgeContextNoDocuments")}</span>
           </div>
-          <Link
-            href={`/projects/${projectId}/settings`}
-            className="text-sm text-primary hover:underline"
-          >
-            {t("knowledgeContextAddDocuments")}
-          </Link>
+          <UploadDocumentButton scope="project" scopeId={projectId} />
         </div>
       </div>
     );
@@ -175,7 +171,8 @@ export function KnowledgeContextIndicator({
                 />
               )}
             </div>
-            <div className="border-t pt-3">
+            <div className="border-t pt-3 flex items-center gap-3">
+              <UploadDocumentButton scope="project" scopeId={projectId} />
               <Link
                 href={`/projects/${projectId}/settings`}
                 className="text-sm text-primary hover:underline"
