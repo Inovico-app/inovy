@@ -112,5 +112,18 @@
   "noTemplateDefined": "Nog geen sjabloon gedefinieerd",
   "templateUpdatedSuccess": "Sjabloon succesvol bijgewerkt",
   "templateCreatedSuccess": "Sjabloon succesvol aangemaakt",
-  "templateDeletedSuccess": "Sjabloon succesvol verwijderd"
+  "templateDeletedSuccess": "Sjabloon succesvol verwijderd",
+  "knowledgeContext": "Kenniscontext",
+  "knowledgeContextDocuments": "{count, plural, one {# document} other {# documenten}} als context",
+  "knowledgeContextProject": "Project",
+  "knowledgeContextOrg": "Organisatie",
+  "knowledgeContextManage": "Documenten beheren",
+  "knowledgeContextNoDocuments": "Geen documenten geconfigureerd",
+  "knowledgeContextAddDocuments": "Documenten toevoegen",
+  "knowledgeContextDescription": "Deze documenten bieden context voor AI-transcripties en samenvattingen in dit project.",
+  "knowledgeContextProcessed": "Verwerkt",
+  "knowledgeContextProcessing": "Verwerken",
+  "knowledgeContextPending": "In afwachting",
+  "knowledgeContextFailed": "Mislukt",
+  "knowledgeContextMore": "+{count} meer"
 }
