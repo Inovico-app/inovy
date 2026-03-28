@@ -1,4 +1,7 @@
-import type { KnowledgeBaseScope } from "@/server/db/schema/knowledge-base-entries";
+import type {
+  KnowledgeBaseScope,
+  VocabularyCategory,
+} from "@/server/db/schema/knowledge-base-entries";
 import type {
   KnowledgeEntryDto,
   KnowledgeDocumentDto,
@@ -39,6 +42,8 @@ export interface EntryInput {
   readonly definition: string;
   readonly context?: string | null;
   readonly examples?: string[] | null;
+  readonly boost?: number | null;
+  readonly category?: VocabularyCategory;
 }
 
 export interface UpdateEntryInput {
@@ -47,6 +52,8 @@ export interface UpdateEntryInput {
   readonly context?: string | null;
   readonly examples?: string[] | null;
   readonly isActive?: boolean;
+  readonly boost?: number | null;
+  readonly category?: VocabularyCategory;
 }
 
 export interface DocumentMetadataInput {

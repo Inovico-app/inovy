@@ -95,8 +95,10 @@ export class TranscriptionService {
         : [];
 
       // Format knowledge entries as Deepgram keywords
-      // Deepgram keywords format: array of strings (terms)
-      const keywords = knowledgeEntries.map((entry) => entry.term);
+      // Deepgram supports "term" or "term:boost" format
+      const keywords = knowledgeEntries.map((entry) =>
+        entry.boost != null ? `${entry.term}:${entry.boost}` : entry.term,
+      );
 
       logger.info("Using knowledge base for transcription", {
         component: "TranscriptionService.transcribeUploadedFile",

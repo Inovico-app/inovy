@@ -38,6 +38,8 @@ function makeEntry(
     definition: "Application Programming Interface",
     context: null,
     examples: null,
+    boost: null,
+    category: "custom" as const,
     isActive: true,
     createdById: "user-1",
     createdAt: new Date(),

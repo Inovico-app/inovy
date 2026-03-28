@@ -19,6 +19,7 @@ import {
   TrashIcon,
 } from "lucide-react";
 import { useState } from "react";
+import { EntryVocabularyBadges } from "./entry-vocabulary-badges";
 import { DeleteKnowledgeEntryDialog } from "./delete-knowledge-entry-dialog";
 import { EditKnowledgeEntryDialog } from "./edit-knowledge-entry-dialog";
 
@@ -91,6 +92,10 @@ export function KnowledgeEntryList({
               >
                 {entry.isActive ? "Active" : "Inactive"}
               </Badge>
+              <EntryVocabularyBadges
+                boost={entry.boost}
+                category={entry.category}
+              />
             </div>
             <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
               {entry.definition}

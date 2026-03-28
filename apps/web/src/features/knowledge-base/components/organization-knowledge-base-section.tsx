@@ -13,9 +13,11 @@ import type {
   KnowledgeDocumentDto,
   KnowledgeEntryDto,
 } from "@/server/dto/knowledge-base.dto";
-import { BookOpenIcon, FileTextIcon, PlusIcon } from "lucide-react";
+import { BookOpenIcon, FileTextIcon, PlusIcon, UploadIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CreateKnowledgeEntryDialog } from "./create-knowledge-entry-dialog";
+import { ImportVocabularyDialog } from "./import-vocabulary-dialog";
 import { KnowledgeDocumentList } from "./knowledge-document-list";
 import { KnowledgeEntryList } from "./knowledge-entry-list";
 import { UploadKnowledgeDocumentDialog } from "./upload-knowledge-document-dialog";
@@ -36,11 +38,13 @@ export function OrganizationKnowledgeBaseSection({
   organizationId,
   canEdit,
 }: OrganizationKnowledgeBaseSectionProps) {
+  const router = useRouter();
   const [entries, setEntries] = useState(() => initialEntries);
   const [documents, setDocuments] = useState(() => initialDocuments);
   const [showCreateEntryDialog, setShowCreateEntryDialog] = useState(false);
   const [showUploadDocumentDialog, setShowUploadDocumentDialog] =
     useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   const handleEntryCreated = (entry: KnowledgeEntryDto) => {
     setEntries((prev) => [...prev, entry]);
@@ -48,7 +52,7 @@ export function OrganizationKnowledgeBaseSection({
 
   const handleEntryUpdated = (updatedEntry: KnowledgeEntryDto) => {
     setEntries((prev) =>
-      prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e))
+      prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e)),
     );
   };
 
@@ -86,6 +90,14 @@ export function OrganizationKnowledgeBaseSection({
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
                 Add Entry
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setShowImportDialog(true)}
+                variant="outline"
+              >
+                <UploadIcon className="h-4 w-4 mr-2" />
+                Import
               </Button>
               <Button
                 size="sm"
@@ -152,9 +164,15 @@ export function OrganizationKnowledgeBaseSection({
             scopeId={organizationId}
             onSuccess={handleDocumentUploaded}
           />
+          <ImportVocabularyDialog
+            open={showImportDialog}
+            onOpenChange={setShowImportDialog}
+            scope="organization"
+            scopeId={organizationId}
+            onSuccess={() => router.refresh()}
+          />
         </>
       )}
     </Card>
   );
 }
-

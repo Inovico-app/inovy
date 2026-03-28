@@ -3,7 +3,10 @@
  */
 
 import type { DocumentProcessingStatus } from "../db/schema/knowledge-base-documents";
-import type { KnowledgeBaseScope } from "../db/schema/knowledge-base-entries";
+import type {
+  KnowledgeBaseScope,
+  VocabularyCategory,
+} from "../db/schema/knowledge-base-entries";
 
 export interface CreateKnowledgeEntryDto {
   scope: KnowledgeBaseScope;
@@ -12,6 +15,8 @@ export interface CreateKnowledgeEntryDto {
   definition: string;
   context?: string | null;
   examples?: string[] | null;
+  boost?: number | null;
+  category?: VocabularyCategory;
   createdById: string; // Better Auth user ID
 }
 
@@ -20,6 +25,8 @@ export interface UpdateKnowledgeEntryDto {
   definition?: string;
   context?: string | null;
   examples?: string[] | null;
+  boost?: number | null;
+  category?: VocabularyCategory;
   isActive?: boolean;
 }
 
@@ -31,6 +38,8 @@ export interface KnowledgeEntryDto {
   definition: string;
   context: string | null;
   examples: string[] | null;
+  boost: number | null;
+  category: VocabularyCategory;
   isActive: boolean;
   createdById: string;
   createdAt: Date;
@@ -78,4 +87,3 @@ export interface KnowledgeDocumentDto {
   createdAt: Date;
   updatedAt: Date;
 }
-
