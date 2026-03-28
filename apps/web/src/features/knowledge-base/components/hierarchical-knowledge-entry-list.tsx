@@ -21,6 +21,7 @@ import {
   TrashIcon,
 } from "lucide-react";
 import { useState } from "react";
+import { CATEGORY_CONFIG } from "../lib/vocabulary-category";
 import { DeleteKnowledgeEntryDialog } from "./delete-knowledge-entry-dialog";
 import { EditKnowledgeEntryDialog } from "./edit-knowledge-entry-dialog";
 
@@ -224,6 +225,19 @@ function EntryRow({ entry, canEdit, onEdit, onDelete }: EntryRowProps) {
           {!entry.isActive && (
             <Badge variant="secondary" className="text-[10px] py-0">
               Inactive
+            </Badge>
+          )}
+          {entry.boost != null && (
+            <Badge variant="outline" className="text-[10px] py-0 font-mono">
+              {entry.boost}x
+            </Badge>
+          )}
+          {entry.category && entry.category !== "custom" && (
+            <Badge
+              variant="outline"
+              className={`text-[10px] py-0 border ${CATEGORY_CONFIG[entry.category].color}`}
+            >
+              {CATEGORY_CONFIG[entry.category].label}
             </Badge>
           )}
         </div>
