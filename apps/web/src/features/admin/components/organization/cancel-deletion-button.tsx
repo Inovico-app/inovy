@@ -2,11 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Loader2Icon, XCircleIcon } from "lucide-react";
-import { useAction } from "next-safe-action/hooks";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { cancelOrganizationDeletion } from "../../actions/cancel-organization-deletion";
+import { useCancelOrganizationDeletion } from "../../hooks/use-cancel-organization-deletion";
 
 interface CancelDeletionButtonProps {
   organizationId: string;
@@ -20,20 +17,8 @@ export function CancelDeletionButton({
   variant = "outline",
 }: CancelDeletionButtonProps) {
   const t = useTranslations("settings");
-  const router = useRouter();
-
-  const { execute: cancelDeletion, isExecuting: isCancelling } = useAction(
-    cancelOrganizationDeletion,
-    {
-      onSuccess: () => {
-        toast.success(t("deleteOrg.cancelledSuccess"));
-        router.refresh();
-      },
-      onError: ({ error }) => {
-        toast.error(error.serverError ?? t("deleteOrg.cancelFailed"));
-      },
-    },
-  );
+  const { execute: cancelDeletion, isExecuting: isCancelling } =
+    useCancelOrganizationDeletion();
 
   const formattedDate = scheduledDeletionAt.toLocaleDateString(undefined, {
     dateStyle: "medium",

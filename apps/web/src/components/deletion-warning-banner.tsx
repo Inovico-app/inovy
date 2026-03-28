@@ -1,12 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { cancelOrganizationDeletion } from "@/features/admin/actions/cancel-organization-deletion";
+import { useCancelOrganizationDeletion } from "@/features/admin/hooks/use-cancel-organization-deletion";
 import { AlertTriangleIcon, Loader2Icon } from "lucide-react";
-import { useAction } from "next-safe-action/hooks";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
 
 interface DeletionWarningBannerProps {
   organizationId: string;
@@ -18,28 +15,12 @@ export function DeletionWarningBanner({
   scheduledDeletionAt,
 }: DeletionWarningBannerProps) {
   const t = useTranslations("settings");
-  const router = useRouter();
+  const { execute: cancelDeletion, isExecuting: isCancelling } =
+    useCancelOrganizationDeletion();
 
   const formattedDate = new Intl.DateTimeFormat(undefined, {
     dateStyle: "long",
   }).format(new Date(scheduledDeletionAt));
-
-  const { execute: cancelDeletion, isExecuting: isCancelling } = useAction(
-    cancelOrganizationDeletion,
-    {
-      onSuccess: () => {
-        toast.success(t("deleteOrg.cancelledSuccess"));
-        router.refresh();
-      },
-      onError: ({ error }) => {
-        toast.error(error.serverError ?? t("deleteOrg.cancelFailed"));
-      },
-    },
-  );
-
-  function handleCancelDeletion() {
-    cancelDeletion({ organizationId });
-  }
 
   return (
     <div className="bg-destructive text-destructive-foreground px-4 py-2 flex items-center justify-between gap-4">
@@ -54,7 +35,7 @@ export function DeletionWarningBanner({
         size="sm"
         className="shrink-0 border-destructive-foreground/30 text-destructive-foreground hover:bg-destructive-foreground/10"
         disabled={isCancelling}
-        onClick={handleCancelDeletion}
+        onClick={() => cancelDeletion({ organizationId })}
       >
         {isCancelling ? (
           <Loader2Icon className="h-4 w-4 animate-spin" />

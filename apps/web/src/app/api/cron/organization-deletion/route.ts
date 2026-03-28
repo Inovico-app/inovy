@@ -34,6 +34,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (authHeader !== `Bearer ${cronSecret}`) {
+      logger.warn("Unauthorized cron request", {
+        component: "GET /api/cron/organization-deletion",
+      });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
