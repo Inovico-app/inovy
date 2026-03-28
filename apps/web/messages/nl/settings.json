@@ -233,6 +233,8 @@
     "configureNotetakerDescription": "Automatische vergaderopname en transcriptie instellen",
     "pending": "In afwachting"
   },
+  "deleteOrg.dangerZoneTitle": "Gevarenzone",
+  "deleteOrg.dangerZoneDescription": "Onomkeerbare en destructieve acties voor deze organisatie.",
   "deleteOrg.title": "Organisatie verwijderen",
   "deleteOrg.description": "Verwijder deze organisatie en alle bijbehorende gegevens permanent. Er geldt een wachtperiode van 7 dagen waarin je kunt annuleren.",
   "deleteOrg.confirmLabel": "Typ \"{orgName}\" om te bevestigen",

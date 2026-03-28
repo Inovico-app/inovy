@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { InviteUserDialog } from "@/features/admin/components/organization/invite-user-dialog";
+import { OrganizationDangerZone } from "@/features/admin/components/organization/organization-danger-zone";
 import { TeamManagement } from "@/features/admin/components/team/team-management";
 import { OrganizationKnowledgeBaseSection } from "@/features/knowledge-base/components/organization-knowledge-base-section";
 import { getOrganizationSettings } from "@/features/settings/actions/organization-settings";
@@ -16,6 +17,7 @@ import {
   getCachedKnowledgeDocuments,
   getCachedKnowledgeEntries,
 } from "@/server/cache/knowledge-base.cache";
+import { OrganizationQueries } from "@/server/data-access/organization.queries";
 import { OrganizationService } from "@/server/services/organization.service";
 import { Building2Icon, ClockIcon, MailIcon, UsersIcon } from "lucide-react";
 import { getTranslations } from "next-intl/server";
@@ -55,6 +57,7 @@ async function OrganizationContent() {
     [membersResult, invitationsResult],
     settingsResult,
     [knowledgeEntries, knowledgeDocuments],
+    orgRecord,
   ] = await Promise.all([
     Promise.all([
       OrganizationService.getOrganizationMembers(organizationId),
@@ -83,6 +86,7 @@ async function OrganizationContent() {
         },
       ),
     ]),
+    OrganizationQueries.findByIdDirect(organizationId),
   ]);
 
   const members = membersResult.isOk() ? membersResult.value : [];
@@ -246,6 +250,8 @@ async function OrganizationContent() {
     </div>
   );
 
+  const scheduledDeletionAt = orgRecord?.scheduledDeletionAt ?? null;
+
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
@@ -255,6 +261,16 @@ async function OrganizationContent() {
         membersContent={membersContent}
         aiContent={aiContent}
       />
+      {canEdit && (
+        <div className="mt-6">
+          <OrganizationDangerZone
+            organizationId={organizationId}
+            organizationName={orgName}
+            memberCount={members.length}
+            scheduledDeletionAt={scheduledDeletionAt}
+          />
+        </div>
+      )}
     </>
   );
 }

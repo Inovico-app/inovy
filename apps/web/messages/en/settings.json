@@ -233,6 +233,8 @@
     "configureNotetakerDescription": "Set up automatic meeting recording and transcription",
     "pending": "Pending"
   },
+  "deleteOrg.dangerZoneTitle": "Danger Zone",
+  "deleteOrg.dangerZoneDescription": "Irreversible and destructive actions for this organization.",
   "deleteOrg.title": "Delete Organization",
   "deleteOrg.description": "Permanently delete this organization and all its data. This action has a 7-day grace period during which you can cancel.",
   "deleteOrg.confirmLabel": "Type \"{orgName}\" to confirm",
