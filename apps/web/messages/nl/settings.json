@@ -232,5 +232,20 @@
     "configureNotetaker": "Notulist-assistent configureren",
     "configureNotetakerDescription": "Automatische vergaderopname en transcriptie instellen",
     "pending": "In afwachting"
-  }
+  },
+  "deleteOrg.title": "Organisatie verwijderen",
+  "deleteOrg.description": "Verwijder deze organisatie en alle bijbehorende gegevens permanent. Er geldt een wachtperiode van 7 dagen waarin je kunt annuleren.",
+  "deleteOrg.confirmLabel": "Typ \"{orgName}\" om te bevestigen",
+  "deleteOrg.confirmPlaceholder": "Organisatienaam",
+  "deleteOrg.scheduleButton": "Verwijdering plannen",
+  "deleteOrg.scheduling": "Plannen...",
+  "deleteOrg.scheduledMessage": "Deze organisatie staat gepland voor verwijdering op {date}.",
+  "deleteOrg.cancelButton": "Verwijdering annuleren",
+  "deleteOrg.cancelling": "Annuleren...",
+  "deleteOrg.cancelledMessage": "De verwijdering van de organisatie is geannuleerd.",
+  "deleteOrg.warningBanner": "Deze organisatie staat gepland voor verwijdering op {date}.",
+  "deleteOrg.warningBannerAction": "Verwijdering annuleren",
+  "deleteOrg.warningItems": "Hiermee worden alle opnames, projecten, vergaderingen, taken, documenten en ledengegevens permanent verwijderd.",
+  "deleteOrg.scheduledSuccess": "Organisatie gepland voor verwijdering",
+  "deleteOrg.cancelledSuccess": "Verwijdering van organisatie geannuleerd"
 }

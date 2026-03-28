@@ -232,5 +232,20 @@
     "configureNotetaker": "Configure notetaker assistant",
     "configureNotetakerDescription": "Set up automatic meeting recording and transcription",
     "pending": "Pending"
-  }
+  },
+  "deleteOrg.title": "Delete Organization",
+  "deleteOrg.description": "Permanently delete this organization and all its data. This action has a 7-day grace period during which you can cancel.",
+  "deleteOrg.confirmLabel": "Type \"{orgName}\" to confirm",
+  "deleteOrg.confirmPlaceholder": "Organization name",
+  "deleteOrg.scheduleButton": "Schedule Deletion",
+  "deleteOrg.scheduling": "Scheduling...",
+  "deleteOrg.scheduledMessage": "This organization is scheduled for deletion on {date}.",
+  "deleteOrg.cancelButton": "Cancel Deletion",
+  "deleteOrg.cancelling": "Cancelling...",
+  "deleteOrg.cancelledMessage": "Organization deletion has been cancelled.",
+  "deleteOrg.warningBanner": "This organization is scheduled for deletion on {date}.",
+  "deleteOrg.warningBannerAction": "Cancel deletion",
+  "deleteOrg.warningItems": "This will permanently delete all recordings, projects, meetings, tasks, documents, and member data.",
+  "deleteOrg.scheduledSuccess": "Organization scheduled for deletion",
+  "deleteOrg.cancelledSuccess": "Organization deletion cancelled"
 }
