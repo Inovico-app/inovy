@@ -1,0 +1,120 @@
+{
+  "metadata": {
+    "title": "Vertrouwen & Beveiliging | inovy",
+    "description": "Ontdek hoe Inovy uw gegevens beschermt met EU-infrastructuur, AES-256-encryptie, AVG-compliance en enterprise-beveiligingsmaatregelen."
+  },
+  "hero": {
+    "title": "Vertrouwd door Nederlandse organisaties",
+    "subtitle": "Enterprise-beveiliging en privacy voor uw vergaderintelligentie",
+    "description": "Inovy is van de grond af opgebouwd met Nederlandse en Europese compliancevereisten in gedachten. Uw gegevens blijven in de EU, beschermd door toonaangevende beveiligingsmaatregelen."
+  },
+  "dataResidency": {
+    "title": "Uitsluitend EU-dataopslag",
+    "description": "Al uw gegevens worden uitsluitend verwerkt en opgeslagen in datacenters binnen de Europese Unie. Zonder uitzonderingen.",
+    "items": {
+      "database": {
+        "label": "Database",
+        "provider": "Neon (PostgreSQL)",
+        "location": "EU (Frankfurt)"
+      },
+      "vectorSearch": {
+        "label": "Vector Search",
+        "provider": "Qdrant",
+        "location": "EU (AWS Frankfurt)"
+      },
+      "storage": {
+        "label": "Bestandsopslag",
+        "provider": "Azure Blob Storage",
+        "location": "EU West"
+      },
+      "meetingBot": {
+        "label": "Vergaderbot",
+        "provider": "Recall.ai",
+        "location": "EU Central"
+      }
+    }
+  },
+  "encryption": {
+    "title": "Encryptie",
+    "description": "Uw gegevens worden beschermd met militaire encryptie in elke fase van de levenscyclus.",
+    "atRest": {
+      "title": "In rust",
+      "description": "Alle opgeslagen gegevens zijn versleuteld met AES-256, dezelfde standaard die wordt gebruikt door overheden en financiële instellingen wereldwijd."
+    },
+    "inTransit": {
+      "title": "In transit",
+      "description": "Alle netwerkcommunicatie is beveiligd met TLS 1.3, de hoogste standaard voor transportbeveiliging."
+    }
+  },
+  "avgCompliance": {
+    "title": "AVG-compliance",
+    "description": "Inovy is ontworpen voor volledige naleving van de Algemene Verordening Gegevensbescherming (AVG).",
+    "items": {
+      "consent": {
+        "title": "Toestemmingsbeheer",
+        "description": "Gedetailleerd toestemmingsbeheer voor opname en gegevensverwerking, met volledige audittrails."
+      },
+      "piiRedaction": {
+        "title": "PII-redactie",
+        "description": "Automatische detectie en redactie van persoonsgegevens uit transcripties en samenvattingen."
+      },
+      "auditLogging": {
+        "title": "Audit logging",
+        "description": "Manipulatiebestendige auditlogs met cryptografische hashketens, voor volledige traceerbaarheid van alle gegevensbewerkingen."
+      },
+      "dataRetention": {
+        "title": "Bewaarbeleid",
+        "description": "Configureerbaar bewaarbeleid met automatische opschoning, zodat gegevens nooit langer worden bewaard dan noodzakelijk."
+      }
+    }
+  },
+  "subProcessors": {
+    "title": "Subverwerkers",
+    "description": "Volledige transparantie over elke derde partij die gegevens namens ons verwerkt.",
+    "columns": {
+      "name": "Leverancier",
+      "purpose": "Doel",
+      "location": "Datalocatie",
+      "status": "Geverifieerd"
+    },
+    "verified": "Geverifieerd",
+    "pending": "Verificatie lopend",
+    "providerCount": "{count} leveranciers"
+  },
+  "certifications": {
+    "title": "Certificeringen",
+    "description": "Wij streven naar de hoogste standaarden voor beveiliging en compliance.",
+    "soc2": {
+      "title": "SOC 2 Type II",
+      "status": "In uitvoering",
+      "description": "Onafhankelijke audit van onze beveiligings-, beschikbaarheids- en vertrouwelijkheidscontroles. Beoogde oplevering: Q4 2026."
+    }
+  },
+  "piiHandling": {
+    "title": "PII-verwerking",
+    "description": "Intelligente bescherming voor gevoelige persoonsgegevens in alle vergaderinhoud.",
+    "detection": {
+      "title": "Automatische detectie",
+      "description": "Onze AI identificeert automatisch persoonsgegevens — namen, telefoonnummers, BSN-nummers, e-mailadressen en meer — in transcripties en samenvattingen."
+    },
+    "redaction": {
+      "title": "Slimme redactie",
+      "description": "Gedetecteerde persoonsgegevens kunnen automatisch worden geredacteerd of gemaskeerd op basis van het beleid van uw organisatie, met behoud van de bruikbaarheid van de inhoud."
+    }
+  },
+  "incidentResponse": {
+    "title": "Incidentrespons",
+    "description": "Transparant en snel handelen wanneer beveiliging het belangrijkst is.",
+    "commitment": "48-uur meldplicht bij datalekken",
+    "commitmentDescription": "In het onwaarschijnlijke geval van een datalek committeren wij ons aan het informeren van alle betrokken organisaties binnen 48 uur — ruim binnen de AVG-vereiste van 72 uur. Ons incidentresponsplan omvat onmiddellijke inperking, grondig onderzoek en heldere communicatie.",
+    "contactLabel": "Beveiligingscontact",
+    "contactEmail": "security@inovico.nl"
+  },
+  "download": {
+    "title": "Documentatie",
+    "description": "Toegang tot onze volledige beveiligings- en compliancedocumentatie.",
+    "dpaButton": "Verwerkersovereenkomst downloaden",
+    "dpaDescription": "Onze verwerkersovereenkomst behandelt alle aspecten van gegevensverwerking, subverwerkers, beveiligingsmaatregelen en uw rechten als verwerkingsverantwoordelijke.",
+    "loginRequired": "Inloggen vereist om het DPA-portaal te openen."
+  }
+}
