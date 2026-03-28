@@ -36,6 +36,7 @@ export function InviteUserDialog() {
     emails,
     inputValue,
     error,
+    addEmail,
     handleInputChange,
     handleKeyDown,
     handlePaste,
@@ -50,11 +51,23 @@ export function InviteUserDialog() {
   });
 
   const handleSubmit = () => {
-    if (emails.length === 0) return;
+    // Auto-chip any typed email that hasn't been confirmed with Enter
+    const emailsToSend = [...emails];
+    const pendingInput = inputValue.trim().toLowerCase();
+    if (pendingInput && !emailsToSend.includes(pendingInput)) {
+      const added = addEmail(inputValue);
+      if (added) {
+        emailsToSend.push(pendingInput);
+      } else if (emailsToSend.length === 0) {
+        return;
+      }
+    }
+
+    if (emailsToSend.length === 0) return;
 
     startTransition(async () => {
       const results = await Promise.all(
-        emails.map(async (email) => {
+        emailsToSend.map(async (email) => {
           try {
             const result = await inviteMember({ email, role });
 
@@ -83,11 +96,11 @@ export function InviteUserDialog() {
             }
 
             return { email, success: false as const, error: "Unknown error" };
-          } catch {
+          } catch (err) {
             return {
               email,
               success: false as const,
-              error: "Failed to send",
+              error: err instanceof Error ? err.message : "Failed to send",
             };
           }
         }),
@@ -197,7 +210,9 @@ export function InviteUserDialog() {
             <Button
               type="button"
               onClick={handleSubmit}
-              disabled={isPending || emails.length === 0}
+              disabled={
+                isPending || (emails.length === 0 && !inputValue.trim())
+              }
             >
               {isPending && (
                 <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />

@@ -20,7 +20,7 @@ import { z } from "zod";
 export const inviteMember = authorizedActionClient
   .metadata({
     name: "invite-member",
-    permissions: policyToPermissions("users:update"),
+    permissions: policyToPermissions("users:create"),
     audit: {
       resourceType: "invitation",
       action: "invite",
