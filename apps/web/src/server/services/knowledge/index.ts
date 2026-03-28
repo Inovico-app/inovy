@@ -308,6 +308,8 @@ export class KnowledgeModule {
         definition: data.definition.trim(),
         context: data.context?.trim() ?? null,
         examples: data.examples ?? null,
+        boost: data.boost ?? null,
+        category: data.category ?? "custom",
         createdById: userId,
       };
 
@@ -332,6 +334,106 @@ export class KnowledgeModule {
       return err(
         ActionErrors.internal(
           "Failed to create knowledge base entry",
+          error as Error,
+          context,
+        ),
+      );
+    }
+  }
+
+  /**
+   * Bulk create knowledge base entries with permission validation.
+   * Used for CSV/TXT import. Skips duplicates.
+   */
+  static async bulkCreateEntries(
+    target: ScopeTarget,
+    entries: EntryInput[],
+    auth: AuthContext,
+  ): Promise<ActionResult<{ imported: KnowledgeEntryDto[]; skipped: number }>> {
+    const context = `${COMPONENT}.bulkCreateEntries`;
+    const userId = auth.user.id;
+
+    try {
+      const guardResult = await ScopeGuard.validate(
+        target.scope,
+        target.scopeId,
+        userId,
+        "write",
+        auth,
+        context,
+      );
+      if (guardResult.isErr()) {
+        return err(
+          ActionErrors.forbidden(
+            "You are not authorized to import entries in this scope",
+            { scope: target.scope, scopeId: target.scopeId, userId },
+            context,
+          ),
+        );
+      }
+
+      // Fetch existing entries to check for duplicates
+      const existingEntries =
+        await KnowledgeBaseEntriesQueries.getEntriesByScope(
+          target.scope,
+          target.scopeId,
+          { includeInactive: true },
+        );
+      const existingTerms = new Set(
+        existingEntries.map((e) => e.term.toLowerCase()),
+      );
+
+      // Filter out duplicates
+      const newEntries: EntryInput[] = [];
+      let skipped = 0;
+      for (const entry of entries) {
+        const normalizedTerm = entry.term.trim().toLowerCase();
+        if (existingTerms.has(normalizedTerm)) {
+          skipped++;
+        } else {
+          newEntries.push(entry);
+          existingTerms.add(normalizedTerm); // Prevent intra-batch duplicates
+        }
+      }
+
+      if (newEntries.length === 0) {
+        return ok({ imported: [], skipped });
+      }
+
+      // Build DTOs
+      const dtos = newEntries.map((entry) => ({
+        scope: target.scope,
+        scopeId: target.scopeId,
+        term: entry.term.trim(),
+        definition: entry.definition.trim(),
+        context: entry.context?.trim() || null,
+        examples: entry.examples ?? null,
+        boost: entry.boost ?? null,
+        category: entry.category ?? ("custom" as const),
+        createdById: userId,
+      }));
+
+      const imported =
+        await KnowledgeBaseEntriesQueries.bulkCreateEntries(dtos);
+
+      logger.info("Bulk imported knowledge entries", {
+        component: context,
+        scope: target.scope,
+        scopeId: target.scopeId,
+        imported: imported.length,
+        skipped,
+      });
+
+      return ok({ imported, skipped });
+    } catch (error) {
+      logger.error(
+        "Failed to bulk create entries",
+        { component: context, target, count: entries.length },
+        error as Error,
+      );
+      return err(
+        ActionErrors.internal(
+          "Failed to import entries",
           error as Error,
           context,
         ),

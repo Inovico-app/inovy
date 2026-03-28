@@ -27,7 +27,16 @@ export const createKnowledgeEntryAction = authorizedActionClient
   })
   .inputSchema(createKnowledgeEntrySchema)
   .action(async ({ parsedInput, ctx }) => {
-    const { scope, scopeId, term, definition, context, examples } = parsedInput;
+    const {
+      scope,
+      scopeId,
+      term,
+      definition,
+      context,
+      examples,
+      boost,
+      category,
+    } = parsedInput;
     const { user, organizationId } = ctx;
 
     if (!user) {
@@ -46,7 +55,7 @@ export const createKnowledgeEntryAction = authorizedActionClient
     // Create entry
     const result = await KnowledgeModule.createEntry(
       { scope, scopeId },
-      { term, definition, context, examples },
+      { term, definition, context, examples, boost, category },
       auth,
     );
 
