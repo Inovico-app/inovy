@@ -68,7 +68,7 @@ export function ImportVocabularyDialog({
   );
 
   const handleDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
+    (e: React.DragEvent<HTMLButtonElement>) => {
       e.preventDefault();
       const file = e.dataTransfer.files[0];
       if (file) handleFile(file);
@@ -97,18 +97,12 @@ export function ImportVocabularyDialog({
         {!parseResult ? (
           <div className="space-y-4">
             {/* Drop zone */}
-            <div
-              className="flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-muted-foreground/25 p-8 transition-colors hover:border-muted-foreground/50 cursor-pointer"
+            <button
+              type="button"
+              className="flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-muted-foreground/25 p-8 transition-colors hover:border-muted-foreground/50 cursor-pointer w-full bg-transparent"
               onDragOver={(e) => e.preventDefault()}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  fileInputRef.current?.click();
-                }
-              }}
             >
               <UploadIcon className="h-8 w-8 text-muted-foreground" />
               <div className="text-center">
@@ -126,7 +120,7 @@ export function ImportVocabularyDialog({
                 className="hidden"
                 onChange={handleFileSelect}
               />
-            </div>
+            </button>
 
             {/* Format guide */}
             <FormatGuide />

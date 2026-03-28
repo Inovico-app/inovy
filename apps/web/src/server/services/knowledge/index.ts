@@ -725,6 +725,8 @@ export class KnowledgeModule {
         definition: existing.definition,
         context: existing.context,
         examples: existing.examples,
+        boost: existing.boost,
+        category: existing.category,
         createdById: userId,
       };
 

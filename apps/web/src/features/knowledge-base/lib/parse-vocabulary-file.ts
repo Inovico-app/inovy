@@ -198,6 +198,19 @@ function parseTxt(content: string): ParseResult {
       continue;
     }
 
+    if (definition.length > 5000) {
+      errors.push(`Line ${i + 1}: definition exceeds 5000 characters`);
+      entries.push({
+        term,
+        definition,
+        boost: null,
+        category: "custom",
+        context: null,
+        error: "Definition exceeds 5000 characters",
+      });
+      continue;
+    }
+
     entries.push({
       term,
       definition,

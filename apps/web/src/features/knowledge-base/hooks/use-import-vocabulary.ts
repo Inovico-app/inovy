@@ -57,13 +57,17 @@ export function useImportVocabulary({
       const content = e.target?.result as string;
       const result = parseVocabularyFile(content, file.name);
 
-      if (result.entries.length > 500) {
+      const validCount = result.entries.filter((e) => !e.error).length;
+      if (validCount > 500) {
         toast.error("Maximum 500 entries per import");
         return;
       }
 
       setParseResult(result);
       setFileName(file.name);
+    };
+    reader.onerror = () => {
+      toast.error("Failed to read file");
     };
     reader.readAsText(file);
   }, []);
