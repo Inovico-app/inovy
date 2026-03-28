@@ -14,8 +14,9 @@ type BlockDataMap = {
 };
 
 function formatOverview(text: string): string {
-  if (!text) return "";
-  return `## Overview\n\n${text}`;
+  const trimmed = text.trim();
+  if (!trimmed) return "";
+  return `## Overview\n\n${trimmed}`;
 }
 
 function formatTopics(topics: string[]): string {

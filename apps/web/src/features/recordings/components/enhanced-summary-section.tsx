@@ -17,7 +17,7 @@ import {
   ChevronDown,
   CopyIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useJumpToTimestamp } from "../hooks/use-jump-to-timestamp";
 import { useCopyToClipboard } from "../hooks/use-copy-to-clipboard";
 import { EditSummaryDialog } from "./edit-summary-dialog";
@@ -58,6 +58,12 @@ export function EnhancedSummarySection({
   const jumpToTimestamp = useJumpToTimestamp();
   const { isCopied: isAllCopied, copyToClipboard: copyAll } =
     useCopyToClipboard();
+
+  const handleCopyAll = useCallback(() => {
+    if (summary) {
+      void copyAll(formatFullSummaryAsMarkdown(summary.content));
+    }
+  }, [copyAll, summary]);
 
   const formattedBlocks = useMemo(
     () => ({
@@ -119,9 +125,7 @@ export function EnhancedSummarySection({
               variant="ghost"
               size="sm"
               className="opacity-50 hover:opacity-100 transition-opacity"
-              onClick={() =>
-                void copyAll(formatFullSummaryAsMarkdown(summary.content))
-              }
+              onClick={handleCopyAll}
               aria-label={t("summary.copyAll")}
             >
               {isAllCopied ? (

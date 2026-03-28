@@ -332,7 +332,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { CheckIcon, CopyIcon } from "lucide-react";
-import { type MouseEvent, useCallback } from "react";
+import { useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { useCopyToClipboard } from "../hooks/use-copy-to-clipboard";
 
 interface CopyBlockButtonProps {
@@ -341,15 +342,12 @@ interface CopyBlockButtonProps {
 }
 
 export function CopyBlockButton({ text, label }: CopyBlockButtonProps) {
+  const t = useTranslations("recordings");
   const { isCopied, copyToClipboard } = useCopyToClipboard();
 
-  const handleClick = useCallback(
-    (e: MouseEvent) => {
-      e.stopPropagation();
-      void copyToClipboard(text);
-    },
-    [copyToClipboard, text],
-  );
+  const handleClick = useCallback(() => {
+    void copyToClipboard(text);
+  }, [copyToClipboard, text]);
 
   const Icon = isCopied ? CheckIcon : CopyIcon;
 
@@ -367,7 +365,7 @@ export function CopyBlockButton({ text, label }: CopyBlockButtonProps) {
         }
       >
         <span aria-live="polite" className="sr-only">
-          {isCopied ? label.replace("Copy", "Copied") : label}
+          {isCopied ? t("summary.copied") : label}
         </span>
         <Icon className="size-3" />
       </TooltipTrigger>
@@ -498,20 +496,20 @@ Then, in the `CardHeader`, add a Copy All button in the `print:hidden` div (line
 Replace the `CollapsibleTrigger` for Overview (lines 93-102) with:
 
 ```tsx
-<CollapsibleTrigger className="flex items-center justify-between w-full group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
-  <h3 className="font-semibold text-base">{t("summary.overview")}</h3>
-  <div className="flex items-center gap-1">
-    <CopyBlockButton
-      text={formatBlockAsMarkdown("overview", summary.content.overview)}
-      label={t("summary.copyOverview")}
-    />
+<div className="flex items-center gap-1">
+  <CollapsibleTrigger className="flex flex-1 items-center justify-between group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
+    <h3 className="font-semibold text-base">{t("summary.overview")}</h3>
     <ChevronDown
       className={`h-4 w-4 transition-transform print:hidden ${
         overviewOpen ? "rotate-180" : ""
       }`}
     />
-  </div>
-</CollapsibleTrigger>
+  </CollapsibleTrigger>
+  <CopyBlockButton
+    text={formattedBlocks.overview}
+    label={t("summary.copyOverview")}
+  />
+</div>
 ```
 
 - [ ] **Step 4: Add CopyBlockButton to Key Topics section**
@@ -519,22 +517,22 @@ Replace the `CollapsibleTrigger` for Overview (lines 93-102) with:
 Replace the `CollapsibleTrigger` for Key Topics (lines 114-123) with:
 
 ```tsx
-<CollapsibleTrigger className="flex items-center justify-between w-full group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
-  <h3 className="font-semibold text-base">
-    Key Topics ({summary.content.topics.length})
-  </h3>
-  <div className="flex items-center gap-1">
-    <CopyBlockButton
-      text={formatBlockAsMarkdown("topics", summary.content.topics)}
-      label={t("summary.copyTopics")}
-    />
+<div className="flex items-center gap-1">
+  <CollapsibleTrigger className="flex flex-1 items-center justify-between group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
+    <h3 className="font-semibold text-base">
+      Key Topics ({summary.content.topics.length})
+    </h3>
     <ChevronDown
       className={`h-4 w-4 transition-transform print:hidden ${
         topicsOpen ? "rotate-180" : ""
       }`}
     />
-  </div>
-</CollapsibleTrigger>
+  </CollapsibleTrigger>
+  <CopyBlockButton
+    text={formattedBlocks.topics}
+    label={t("summary.copyTopics")}
+  />
+</div>
 ```
 
 - [ ] **Step 5: Add CopyBlockButton to Decisions section**
@@ -542,22 +540,22 @@ Replace the `CollapsibleTrigger` for Key Topics (lines 114-123) with:
 Replace the `CollapsibleTrigger` for Decisions (lines 143-152) with:
 
 ```tsx
-<CollapsibleTrigger className="flex items-center justify-between w-full group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
-  <h3 className="font-semibold text-base">
-    Decisions ({summary.content.decisions.length})
-  </h3>
-  <div className="flex items-center gap-1">
-    <CopyBlockButton
-      text={formatBlockAsMarkdown("decisions", summary.content.decisions)}
-      label={t("summary.copyDecisions")}
-    />
+<div className="flex items-center gap-1">
+  <CollapsibleTrigger className="flex flex-1 items-center justify-between group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
+    <h3 className="font-semibold text-base">
+      Decisions ({summary.content.decisions.length})
+    </h3>
     <ChevronDown
       className={`h-4 w-4 transition-transform print:hidden ${
         decisionsOpen ? "rotate-180" : ""
       }`}
     />
-  </div>
-</CollapsibleTrigger>
+  </CollapsibleTrigger>
+  <CopyBlockButton
+    text={formattedBlocks.decisions}
+    label={t("summary.copyDecisions")}
+  />
+</div>
 ```
 
 - [ ] **Step 6: Add CopyBlockButton to Speaker Contributions section**
@@ -565,25 +563,22 @@ Replace the `CollapsibleTrigger` for Decisions (lines 143-152) with:
 Replace the `CollapsibleTrigger` for Speaker Contributions (lines 176-186) with:
 
 ```tsx
-<CollapsibleTrigger className="flex items-center justify-between w-full group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
-  <h3 className="font-semibold text-base">
-    Speaker Contributions ({summary.content.speakerContributions.length})
-  </h3>
-  <div className="flex items-center gap-1">
-    <CopyBlockButton
-      text={formatBlockAsMarkdown(
-        "speakerContributions",
-        summary.content.speakerContributions,
-      )}
-      label={t("summary.copySpeakerContributions")}
-    />
+<div className="flex items-center gap-1">
+  <CollapsibleTrigger className="flex flex-1 items-center justify-between group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
+    <h3 className="font-semibold text-base">
+      Speaker Contributions ({summary.content.speakerContributions.length})
+    </h3>
     <ChevronDown
       className={`h-4 w-4 transition-transform print:hidden ${
         contributionsOpen ? "rotate-180" : ""
       }`}
     />
-  </div>
-</CollapsibleTrigger>
+  </CollapsibleTrigger>
+  <CopyBlockButton
+    text={formattedBlocks.speakerContributions}
+    label={t("summary.copySpeakerContributions")}
+  />
+</div>
 ```
 
 - [ ] **Step 7: Add CopyBlockButton to Important Quotes section**
@@ -591,25 +586,22 @@ Replace the `CollapsibleTrigger` for Speaker Contributions (lines 176-186) with:
 Replace the `CollapsibleTrigger` for Important Quotes (lines 215-224) with:
 
 ```tsx
-<CollapsibleTrigger className="flex items-center justify-between w-full group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
-  <h3 className="font-semibold text-base">
-    Important Quotes ({summary.content.importantQuotes.length})
-  </h3>
-  <div className="flex items-center gap-1">
-    <CopyBlockButton
-      text={formatBlockAsMarkdown(
-        "importantQuotes",
-        summary.content.importantQuotes,
-      )}
-      label={t("summary.copyImportantQuotes")}
-    />
+<div className="flex items-center gap-1">
+  <CollapsibleTrigger className="flex flex-1 items-center justify-between group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
+    <h3 className="font-semibold text-base">
+      Important Quotes ({summary.content.importantQuotes.length})
+    </h3>
     <ChevronDown
       className={`h-4 w-4 transition-transform print:hidden ${
         quotesOpen ? "rotate-180" : ""
       }`}
     />
-  </div>
-</CollapsibleTrigger>
+  </CollapsibleTrigger>
+  <CopyBlockButton
+    text={formattedBlocks.importantQuotes}
+    label={t("summary.copyImportantQuotes")}
+  />
+</div>
 ```
 
 - [ ] **Step 8: Verify no lint/type errors**

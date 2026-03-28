@@ -48,6 +48,11 @@ describe("formatBlockAsMarkdown", () => {
     expect(result).toBe("");
   });
 
+  it("returns empty string for whitespace-only overview", () => {
+    const result = formatBlockAsMarkdown("overview", "   ");
+    expect(result).toBe("");
+  });
+
   it("returns empty string for empty array blocks", () => {
     expect(formatBlockAsMarkdown("topics", [])).toBe("");
     expect(formatBlockAsMarkdown("decisions", [])).toBe("");
@@ -98,7 +103,7 @@ describe("formatBlockAsMarkdown", () => {
 });
 
 describe("formatFullSummaryAsMarkdown", () => {
-  it("combines all non-empty blocks with double newlines", () => {
+  it("combines all non-empty blocks with double newlines in order", () => {
     const content = {
       overview: "Meeting overview",
       topics: ["Topic 1"],
@@ -107,11 +112,14 @@ describe("formatFullSummaryAsMarkdown", () => {
       importantQuotes: [{ speaker: "Alice", quote: "Nice" }],
     };
     const result = formatFullSummaryAsMarkdown(content);
-    expect(result).toContain("## Overview\n\nMeeting overview");
-    expect(result).toContain("## Key Topics\n\n- Topic 1");
-    expect(result).toContain("## Decisions\n\n- ✅ Decision 1");
-    expect(result).toContain("## Speaker Contributions\n\n### Alice\n- Did X");
-    expect(result).toContain('## Important Quotes\n\n> "Nice" — Alice');
+    const expected = [
+      "## Overview\n\nMeeting overview",
+      "## Key Topics\n\n- Topic 1",
+      "## Decisions\n\n- ✅ Decision 1",
+      "## Speaker Contributions\n\n### Alice\n- Did X",
+      '## Important Quotes\n\n> "Nice" — Alice',
+    ].join("\n\n");
+    expect(result).toBe(expected);
   });
 
   it("skips empty blocks", () => {
