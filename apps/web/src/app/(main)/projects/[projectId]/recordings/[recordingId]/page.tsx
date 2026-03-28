@@ -67,10 +67,22 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
   const t = await getTranslations("projects");
   const knowledgeUsed = extractUsedKnowledge(transcriptionInsights);
 
-  const [projectDocuments, orgDocuments] = await Promise.all([
+  const [projectDocumentsRaw, orgDocumentsRaw] = await Promise.all([
     getCachedKnowledgeDocuments("project", projectId),
     getCachedKnowledgeDocuments("organization", organizationId),
   ]);
+
+  const toSummary = (d: {
+    id: string;
+    title: string;
+    processingStatus: string;
+  }) => ({
+    id: d.id,
+    title: d.title,
+    processingStatus: d.processingStatus,
+  });
+  const projectDocuments = projectDocumentsRaw.map(toSummary);
+  const orgDocuments = orgDocumentsRaw.map(toSummary);
 
   return (
     <div className="container mx-auto py-8 px-4">

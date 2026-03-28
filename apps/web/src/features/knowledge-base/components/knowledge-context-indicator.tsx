@@ -6,7 +6,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import type { KnowledgeDocumentDto } from "@/server/dto/knowledge-base.dto";
 import {
   ChevronDownIcon,
   FileTextIcon,
@@ -19,9 +18,16 @@ import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useState } from "react";
 
+/** Narrow projection — avoids serializing extractedText across the RSC boundary */
+export interface KnowledgeDocumentSummary {
+  id: string;
+  title: string;
+  processingStatus: string;
+}
+
 interface KnowledgeContextIndicatorProps {
-  projectDocuments: KnowledgeDocumentDto[];
-  orgDocuments: KnowledgeDocumentDto[];
+  projectDocuments: KnowledgeDocumentSummary[];
+  orgDocuments: KnowledgeDocumentSummary[];
   projectId: string;
 }
 
@@ -56,12 +62,11 @@ function ProcessingStatusIcon({ status }: { status: string }) {
 function DocumentGroup({
   label,
   documents,
-  t,
 }: {
   label: string;
-  documents: KnowledgeDocumentDto[];
-  t: ReturnType<typeof useTranslations<"projects">>;
+  documents: KnowledgeDocumentSummary[];
 }) {
+  const t = useTranslations("projects");
   const visible = documents.slice(0, MAX_VISIBLE_DOCS);
   const remaining = documents.length - MAX_VISIBLE_DOCS;
 
@@ -159,14 +164,12 @@ export function KnowledgeContextIndicator({
                 <DocumentGroup
                   label={t("knowledgeContextProject")}
                   documents={projectDocuments}
-                  t={t}
                 />
               )}
               {orgDocuments.length > 0 && (
                 <DocumentGroup
                   label={t("knowledgeContextOrg")}
                   documents={orgDocuments}
-                  t={t}
                 />
               )}
             </div>
