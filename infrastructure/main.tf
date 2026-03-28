@@ -52,6 +52,24 @@ locals {
       cron_expression    = "0 2 * * *" # Daily at 2 AM UTC
       timeout_in_seconds = 300
     }
+    process-deletions = {
+      short_name         = "proc-del"
+      path               = "/api/cron/process-deletions"
+      cron_expression    = "30 1 * * *" # Daily at 1:30 AM UTC
+      timeout_in_seconds = 600
+    }
+    retry-failed-transcriptions = {
+      short_name         = "retry-tx"
+      path               = "/api/cron/retry-failed-transcriptions"
+      cron_expression    = "*/10 * * * *" # Every 10 minutes
+      timeout_in_seconds = 300
+    }
+    organization-deletion = {
+      short_name         = "org-del"
+      path               = "/api/cron/organization-deletion"
+      cron_expression    = "0 1 * * *" # Daily at 1 AM UTC
+      timeout_in_seconds = 900
+    }
   }
 }
 
