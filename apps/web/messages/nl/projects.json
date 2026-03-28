@@ -125,5 +125,6 @@
   "knowledgeContextProcessing": "Verwerken",
   "knowledgeContextPending": "In afwachting",
   "knowledgeContextFailed": "Mislukt",
-  "knowledgeContextMore": "+{count} meer"
+  "knowledgeContextMore": "+{count} meer",
+  "knowledgeContextUpload": "Documenten uploaden"
 }

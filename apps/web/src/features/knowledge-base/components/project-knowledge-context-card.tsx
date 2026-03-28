@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileTextIcon, BuildingIcon } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
+import { UploadDocumentButton } from "./upload-document-button";
 
 interface ProjectKnowledgeContextCardProps {
   projectDocumentCount: number;
@@ -28,12 +29,7 @@ export async function ProjectKnowledgeContextCard({
             <p className="text-sm text-muted-foreground">
               {t("knowledgeContextNoDocuments")}
             </p>
-            <Link
-              href={`/projects/${projectId}/settings`}
-              className="text-sm text-primary hover:underline"
-            >
-              {t("knowledgeContextAddDocuments")}
-            </Link>
+            <UploadDocumentButton scope="project" scopeId={projectId} />
           </div>
         </CardContent>
       </Card>
@@ -73,12 +69,15 @@ export async function ProjectKnowledgeContextCard({
         <p className="text-sm text-muted-foreground">
           {t("knowledgeContextDescription")}
         </p>
-        <Link
-          href={`/projects/${projectId}/settings`}
-          className="text-sm text-primary hover:underline inline-block"
-        >
-          {t("knowledgeContextManage")} →
-        </Link>
+        <div className="flex items-center gap-3">
+          <UploadDocumentButton scope="project" scopeId={projectId} />
+          <Link
+            href={`/projects/${projectId}/settings`}
+            className="text-sm text-primary hover:underline"
+          >
+            {t("knowledgeContextManage")} →
+          </Link>
+        </div>
       </CardContent>
     </Card>
   );

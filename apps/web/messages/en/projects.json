@@ -125,5 +125,6 @@
   "knowledgeContextProcessing": "Processing",
   "knowledgeContextPending": "Pending",
   "knowledgeContextFailed": "Failed",
-  "knowledgeContextMore": "+{count} more"
+  "knowledgeContextMore": "+{count} more",
+  "knowledgeContextUpload": "Upload documents"
 }
