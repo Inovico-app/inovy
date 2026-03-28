@@ -29,6 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   CATEGORY_CONFIG,
   VOCABULARY_CATEGORIES,
+  parseBoostValue,
 } from "../lib/vocabulary-category";
 import type { KnowledgeBaseScope } from "@/server/db/schema/knowledge-base-entries";
 import type { KnowledgeEntryDto } from "@/server/dto/knowledge-base.dto";
@@ -96,12 +97,7 @@ export function CreateKnowledgeEntryDialog({
           .filter((ex) => ex.length > 0)
       : null;
 
-    const boostValue =
-      typeof data.boost === "string"
-        ? data.boost === ""
-          ? null
-          : parseFloat(data.boost)
-        : data.boost;
+    const boostValue = parseBoostValue(data.boost);
 
     execute({
       scope,

@@ -8,39 +8,21 @@ import {
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { KnowledgeModule } from "@/server/services/knowledge";
+import { vocabularyCategoryEnum } from "@/server/db/schema/knowledge-base-entries";
+import { knowledgeBaseScopeSchema } from "@/server/validation/knowledge-base.schema";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 const importEntrySchema = z.object({
-  term: z
-    .string()
-    .trim()
-    .min(1, "Term is required")
-    .max(100, "Term must be less than 100 characters"),
-  definition: z
-    .string()
-    .trim()
-    .min(1, "Definition is required")
-    .max(5000, "Definition must be less than 5000 characters"),
-  boost: z
-    .number()
-    .min(0, "Boost must be at least 0")
-    .max(2, "Boost must be at most 2")
-    .nullable()
-    .optional(),
-  category: z
-    .enum(["medical", "legal", "technical", "custom"])
-    .optional()
-    .default("custom"),
-  context: z
-    .string()
-    .max(1000, "Context must be less than 1000 characters")
-    .nullable()
-    .optional(),
+  term: z.string().trim().min(1).max(100),
+  definition: z.string().trim().min(1).max(5000),
+  boost: z.number().min(0).max(2).nullable().optional(),
+  category: z.enum(vocabularyCategoryEnum).optional().default("custom"),
+  context: z.string().max(1000).nullable().optional(),
 });
 
 const importKnowledgeEntriesSchema = z.object({
-  scope: z.enum(["project", "organization", "global", "team"]),
+  scope: knowledgeBaseScopeSchema,
   scopeId: z.string().nullable(),
   entries: z
     .array(importEntrySchema)
@@ -92,7 +74,6 @@ export const importKnowledgeEntriesAction = authorizedActionClient
       throw createErrorForNextSafeAction(result.error);
     }
 
-    // Revalidate relevant pages
     if (scope === "project" && scopeId) {
       revalidatePath(`/projects/${scopeId}/settings`);
     } else if (scope === "team" && scopeId) {

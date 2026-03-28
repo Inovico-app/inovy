@@ -2,8 +2,7 @@
 
 import type { KnowledgeBaseScope } from "@/server/db/schema/knowledge-base-entries";
 import { useAction } from "next-safe-action/hooks";
-import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { importKnowledgeEntriesAction } from "../actions/import-entries";
 import {
@@ -22,9 +21,13 @@ export function useImportVocabulary({
   scopeId,
   onSuccess,
 }: UseImportVocabularyProps) {
-  const router = useRouter();
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+
+  const reset = useCallback(() => {
+    setParseResult(null);
+    setFileName(null);
+  }, []);
 
   const { execute, isExecuting } = useAction(importKnowledgeEntriesAction, {
     onSuccess: ({ data }) => {
@@ -35,7 +38,6 @@ export function useImportVocabulary({
             : `Imported ${data.imported} entries`;
         toast.success(msg);
         onSuccess?.();
-        router.refresh();
         reset();
       }
     },
@@ -66,10 +68,12 @@ export function useImportVocabulary({
     reader.readAsText(file);
   }, []);
 
-  const handleImport = useCallback(() => {
-    if (!parseResult) return;
+  const validEntries = useMemo(
+    () => parseResult?.entries.filter((e) => !e.error) ?? [],
+    [parseResult],
+  );
 
-    const validEntries = parseResult.entries.filter((e) => !e.error);
+  const handleImport = useCallback(() => {
     if (validEntries.length === 0) {
       toast.error("No valid entries to import");
       return;
@@ -86,15 +90,10 @@ export function useImportVocabulary({
         context: e.context,
       })),
     });
-  }, [parseResult, scope, scopeId, execute]);
+  }, [validEntries, scope, scopeId, execute]);
 
-  const reset = useCallback(() => {
-    setParseResult(null);
-    setFileName(null);
-  }, []);
-
-  const validCount = parseResult?.entries.filter((e) => !e.error).length ?? 0;
-  const errorCount = parseResult?.entries.filter((e) => e.error).length ?? 0;
+  const validCount = validEntries.length;
+  const errorCount = (parseResult?.entries.length ?? 0) - validCount;
 
   return {
     parseResult,

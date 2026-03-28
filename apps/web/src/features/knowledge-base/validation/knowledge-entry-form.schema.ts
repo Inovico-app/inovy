@@ -1,3 +1,4 @@
+import { vocabularyCategoryEnum } from "@/server/db/schema/knowledge-base-entries";
 import { z } from "zod";
 
 export const createKnowledgeEntryFormSchema = z.object({
@@ -29,7 +30,7 @@ export const createKnowledgeEntryFormSchema = z.object({
       },
       { message: "Boost must be a number between 0 and 2" },
     ),
-  category: z.enum(["medical", "legal", "technical", "custom"]).optional(),
+  category: z.enum(vocabularyCategoryEnum).optional(),
 });
 
 export const editKnowledgeEntryFormSchema =

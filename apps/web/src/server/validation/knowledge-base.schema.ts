@@ -1,3 +1,4 @@
+import { vocabularyCategoryEnum } from "@/server/db/schema/knowledge-base-entries";
 import z from "zod";
 
 /**
@@ -106,7 +107,7 @@ export const updateKnowledgeEntrySchema = z.object({
     .max(2, "Boost must be at most 2")
     .nullable()
     .optional(),
-  category: z.enum(["medical", "legal", "technical", "custom"]).optional(),
+  category: z.enum(vocabularyCategoryEnum).optional(),
 });
 
 export type UpdateKnowledgeEntryInput = z.infer<

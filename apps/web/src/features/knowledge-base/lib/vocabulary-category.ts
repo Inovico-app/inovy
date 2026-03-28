@@ -1,11 +1,9 @@
-import type { VocabularyCategory } from "@/server/db/schema/knowledge-base-entries";
+import {
+  vocabularyCategoryEnum,
+  type VocabularyCategory,
+} from "@/server/db/schema/knowledge-base-entries";
 
-export const VOCABULARY_CATEGORIES = [
-  "medical",
-  "legal",
-  "technical",
-  "custom",
-] as const;
+export const VOCABULARY_CATEGORIES = vocabularyCategoryEnum;
 
 export const CATEGORY_CONFIG: Record<
   VocabularyCategory,
@@ -32,3 +30,13 @@ export const CATEGORY_CONFIG: Record<
       "text-neutral-600 bg-neutral-50 border-neutral-200 dark:text-neutral-400 dark:bg-neutral-900 dark:border-neutral-700",
   },
 };
+
+export function parseBoostValue(
+  value: string | number | null | undefined,
+): number | null {
+  if (value == null) return null;
+  if (typeof value === "number") return value;
+  if (value === "") return null;
+  const num = parseFloat(value);
+  return isNaN(num) ? null : num;
+}

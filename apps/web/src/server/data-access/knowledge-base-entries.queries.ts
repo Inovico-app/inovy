@@ -31,6 +31,8 @@ export class KnowledgeBaseEntriesQueries {
         definition: data.definition,
         context: data.context ?? null,
         examples: data.examples ?? null,
+        boost: data.boost ?? null,
+        category: data.category ?? "custom",
         createdById: data.createdById,
       })
       .returning();

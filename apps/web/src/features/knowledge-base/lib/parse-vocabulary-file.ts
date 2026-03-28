@@ -1,4 +1,7 @@
-import type { VocabularyCategory } from "@/server/db/schema/knowledge-base-entries";
+import {
+  vocabularyCategoryEnum,
+  type VocabularyCategory,
+} from "@/server/db/schema/knowledge-base-entries";
 
 export interface ParsedVocabularyEntry {
   term: string;
@@ -14,12 +17,7 @@ export interface ParseResult {
   errors: string[];
 }
 
-const VALID_CATEGORIES = new Set<string>([
-  "medical",
-  "legal",
-  "technical",
-  "custom",
-]);
+const VALID_CATEGORIES = new Set<string>(vocabularyCategoryEnum);
 
 /**
  * Parse a vocabulary file (CSV or TXT) into structured entries.
