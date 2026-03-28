@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import type { TaskDto } from "@/server/dto/task.dto";
 import { useUpdateTaskMutation } from "../hooks/use-update-task-mutation";
+import { useOrganizationUsersQuery } from "../hooks/use-organization-users-query";
 import { Pencil, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -44,6 +45,8 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
   const [dueDate, setDueDate] = useState(
     task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
   );
+  const [assigneeId, setAssigneeId] = useState(task.assigneeId || "");
+  const { data: orgUsers = [] } = useOrganizationUsersQuery();
 
   const priorityLabels = {
     low: t("priorityLow"),
@@ -64,6 +67,13 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const selectedUser = orgUsers.find((u) => u.id === assigneeId);
+    const assigneeName = selectedUser
+      ? [selectedUser.given_name, selectedUser.family_name]
+          .filter(Boolean)
+          .join(" ") || selectedUser.email
+      : null;
+
     await updateMutation.mutateAsync({
       taskId: task.id,
       title,
@@ -71,6 +81,8 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
       priority,
       status,
       dueDate: dueDate ? new Date(dueDate) : null,
+      assigneeId: assigneeId || null,
+      assigneeName: assigneeName || null,
     });
 
     setOpen(false);
@@ -86,6 +98,7 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
       setDueDate(
         task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
       );
+      setAssigneeId(task.assigneeId || "");
     }
     setOpen(newOpen);
   };
@@ -184,6 +197,36 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="assignee">{t("assigneeLabel")}</Label>
+              <Select
+                value={assigneeId}
+                onValueChange={(value) => setAssigneeId(value ?? "")}
+              >
+                <SelectTrigger id="assignee">
+                  <SelectValue placeholder={t("unassigned")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">
+                    <span className="text-muted-foreground">
+                      {t("unassigned")}
+                    </span>
+                  </SelectItem>
+                  {orgUsers.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      <div className="flex items-center gap-2">
+                        <span>
+                          {[user.given_name, user.family_name]
+                            .filter(Boolean)
+                            .join(" ") || user.email}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid gap-2">
