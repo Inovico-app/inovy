@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { queryKeys } from "@/lib/query-keys";
 import { restoreTranscriptionVersion } from "../actions/restore-transcription-version";
 
 interface UseRestoreTranscriptionMutationOptions {
@@ -29,7 +30,9 @@ export function useRestoreTranscriptionMutation(
     onSuccess: (_data, variables) => {
       // Invalidate transcription history (has a real useQuery consumer)
       queryClient.invalidateQueries({
-        queryKey: ["transcription-history", variables.recordingId],
+        queryKey: queryKeys.transcriptionHistory.byRecording(
+          variables.recordingId,
+        ),
       });
 
       // Refresh RSC data — recording detail is server-rendered, not RQ

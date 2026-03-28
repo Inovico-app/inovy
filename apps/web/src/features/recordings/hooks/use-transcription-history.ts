@@ -1,14 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { getTranscriptionHistory } from "../actions/get-transcription-history";
 
 export function useTranscriptionHistory(recordingId: string) {
   return useQuery({
-    queryKey: ["transcription-history", recordingId],
+    queryKey: queryKeys.transcriptionHistory.byRecording(recordingId),
     queryFn: async () => {
       const result = await getTranscriptionHistory({ recordingId });
       if (result.serverError || !result.data) {
         throw new Error(
-          result.serverError ?? "Failed to fetch transcription history"
+          result.serverError ?? "Failed to fetch transcription history",
         );
       }
       return result.data;
@@ -16,4 +17,3 @@ export function useTranscriptionHistory(recordingId: string) {
     enabled: !!recordingId,
   });
 }
-
