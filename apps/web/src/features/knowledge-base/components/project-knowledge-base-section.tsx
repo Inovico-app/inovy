@@ -26,6 +26,7 @@ import {
 import { useState } from "react";
 import { CreateKnowledgeEntryDialog } from "./create-knowledge-entry-dialog";
 import { HierarchicalKnowledgeEntryList } from "./hierarchical-knowledge-entry-list";
+import { ImportVocabularyDialog } from "./import-vocabulary-dialog";
 import { KnowledgeDocumentList } from "./knowledge-document-list";
 import { KnowledgeEntryList } from "./knowledge-entry-list";
 import { UploadKnowledgeDocumentDialog } from "./upload-knowledge-document-dialog";
@@ -57,6 +58,7 @@ export function ProjectKnowledgeBaseSection({
   const [showCreateEntryDialog, setShowCreateEntryDialog] = useState(false);
   const [showUploadDocumentDialog, setShowUploadDocumentDialog] =
     useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   const handleEntryCreated = (entry: KnowledgeEntryDto) => {
     setProjectEntries((prev) => [...prev, entry]);
@@ -129,6 +131,14 @@ export function ProjectKnowledgeBaseSection({
               >
                 <PlusIcon className="h-3.5 w-3.5 mr-1.5" />
                 Add Entry
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowImportDialog(true)}
+              >
+                <UploadIcon className="h-3.5 w-3.5 mr-1.5" />
+                Import
               </Button>
               <Button
                 size="sm"
@@ -240,6 +250,12 @@ export function ProjectKnowledgeBaseSection({
             scope="project"
             scopeId={projectId}
             onSuccess={handleDocumentUploaded}
+          />
+          <ImportVocabularyDialog
+            open={showImportDialog}
+            onOpenChange={setShowImportDialog}
+            scope="project"
+            scopeId={projectId}
           />
         </>
       )}
