@@ -75,6 +75,7 @@ async function OrganizationContent({
       <OrganizationDangerZone
         organizationId={organization.id}
         organizationName={organization.name}
+        scheduledDeletionAt={organization.scheduledDeletionAt}
       />
     </div>
   );
