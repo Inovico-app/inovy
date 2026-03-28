@@ -109,6 +109,10 @@ export const organizations = pgTable(
     createdAt: timestamp("created_at").notNull(),
     metadata: text("metadata"),
     agentEnabled: boolean("agent_enabled").default(true),
+    scheduledDeletionAt: timestamp("scheduled_deletion_at", {
+      withTimezone: true,
+    }),
+    deletionRequestedById: text("deletion_requested_by_id"),
   },
   (table) => [uniqueIndex("organizations_slug_uidx").on(table.slug)],
 );
