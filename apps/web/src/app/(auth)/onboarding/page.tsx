@@ -12,7 +12,10 @@ import { Suspense } from "react";
 async function OnboardingContent({
   searchParams,
 }: {
-  searchParams: Promise<{ google_connected?: string }>;
+  searchParams: Promise<{
+    google_connected?: string;
+    microsoft_connected?: string;
+  }>;
 }) {
   const t = await getTranslations("onboarding");
   const sessionResult = await getBetterAuthSession();
@@ -81,6 +84,7 @@ async function OnboardingContent({
           <div className="mx-auto w-full max-w-md">
             <OnboardingStepForm
               onboardingId={onboarding.id}
+              signupMethod={onboarding.signupMethod}
               initialData={{
                 name: user.name ?? undefined,
                 signupType: onboarding.signupType,
@@ -196,7 +200,10 @@ async function OnboardingContent({
 export default async function OnboardingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ google_connected?: string }>;
+  searchParams: Promise<{
+    google_connected?: string;
+    microsoft_connected?: string;
+  }>;
 }) {
   return (
     <Suspense

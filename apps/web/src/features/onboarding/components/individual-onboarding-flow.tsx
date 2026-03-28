@@ -1,7 +1,10 @@
 "use client";
 
 import { AnimatePresence } from "motion/react";
-import { useGoogleConnection } from "../hooks/use-google-connection";
+import {
+  useCalendarConnection,
+  type CalendarProvider,
+} from "../hooks/use-calendar-connection";
 import type { Step } from "../hooks/use-onboarding-steps";
 import { StepTransition } from "./step-transition";
 import { StepAccountType } from "./steps/step-account-type";
@@ -14,19 +17,18 @@ import { StepResearchQuestion } from "./steps/step-research-question";
 interface IndividualOnboardingFlowProps {
   currentStep: Step;
   isLoading: boolean;
+  signupMethod?: string;
 }
 
 export function IndividualOnboardingFlow({
   currentStep,
   isLoading,
+  signupMethod,
 }: IndividualOnboardingFlowProps) {
-  const {
-    googleConnected,
-    checkingGoogleStatus,
-    handleConnectGoogle,
-    showPermissionDialog,
-    setShowPermissionDialog,
-  } = useGoogleConnection(currentStep);
+  const calendarProvider: CalendarProvider =
+    signupMethod === "microsoft" ? "microsoft" : "google";
+
+  const calendar = useCalendarConnection(calendarProvider, currentStep);
 
   return (
     <AnimatePresence mode="wait">
@@ -51,11 +53,12 @@ export function IndividualOnboardingFlow({
       {currentStep === 4 && (
         <StepTransition key="step4">
           <StepCalendar
-            googleConnected={googleConnected}
-            checkingGoogleStatus={checkingGoogleStatus}
-            onConnectGoogle={handleConnectGoogle}
-            showPermissionDialog={showPermissionDialog}
-            onPermissionDialogChange={setShowPermissionDialog}
+            provider={calendarProvider}
+            connected={calendar.connected}
+            checkingStatus={calendar.checkingStatus}
+            onConnect={calendar.handleConnect}
+            showPermissionDialog={calendar.showPermissionDialog}
+            onPermissionDialogChange={calendar.setShowPermissionDialog}
           />
         </StepTransition>
       )}
@@ -74,4 +77,3 @@ export function IndividualOnboardingFlow({
     </AnimatePresence>
   );
 }
-

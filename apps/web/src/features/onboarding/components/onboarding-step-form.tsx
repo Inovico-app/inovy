@@ -16,6 +16,7 @@ import { OrganizationOnboardingFlow } from "./organization-onboarding-flow";
 
 interface OnboardingStepFormProps {
   onboardingId: string;
+  signupMethod?: string;
   initialData?: {
     name?: string | null;
     signupType?: "individual" | "organization";
@@ -30,6 +31,7 @@ interface OnboardingStepFormProps {
 
 export function OnboardingStepForm({
   onboardingId,
+  signupMethod,
   initialData,
 }: OnboardingStepFormProps) {
   const [currentStep, setCurrentStep] = useState<Step>(1);
@@ -135,6 +137,7 @@ export function OnboardingStepForm({
             <IndividualOnboardingFlow
               currentStep={currentStep}
               isLoading={isLoading}
+              signupMethod={signupMethod}
             />
           )}
 
@@ -168,4 +171,3 @@ export function OnboardingStepForm({
     </FormProvider>
   );
 }
-
