@@ -21,7 +21,9 @@ import { ReprocessButton } from "@/features/recordings/components/reprocess-butt
 import { ReprocessingStatusIndicator } from "@/features/recordings/components/reprocessing-status-indicator";
 import { TranscriptionSection } from "@/features/recordings/components/transcription/transcription-section";
 import { getRecordingDetailPageData } from "@/features/recordings/server/get-recording-detail-page-data";
+import { KnowledgeContextIndicator } from "@/features/knowledge-base/components/knowledge-context-indicator";
 import { FeedbackQueries } from "@/server/data-access/feedback.queries";
+import { getCachedKnowledgeDocuments } from "@/server/cache/knowledge-base.cache";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import type { AIInsightDto } from "@/server/dto/ai-insight.dto";
 import { ArrowLeftIcon } from "lucide-react";
@@ -64,6 +66,11 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
 
   const t = await getTranslations("projects");
   const knowledgeUsed = extractUsedKnowledge(transcriptionInsights);
+
+  const [projectDocuments, orgDocuments] = await Promise.all([
+    getCachedKnowledgeDocuments("project", projectId),
+    getCachedKnowledgeDocuments("organization", organizationId),
+  ]);
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -122,6 +129,13 @@ async function RecordingDetail({ params }: RecordingDetailPageProps) {
             transcriptionInsights={transcriptionInsights}
           />
         </AudioTranscriptSyncWrapper>
+
+        {/* Knowledge Context */}
+        <KnowledgeContextIndicator
+          projectDocuments={projectDocuments}
+          orgDocuments={orgDocuments}
+          projectId={projectId}
+        />
 
         {/* AI-Generated Summary */}
         <EnhancedSummarySection
