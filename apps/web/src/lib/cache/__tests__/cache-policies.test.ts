@@ -33,14 +33,24 @@ describe("CACHE_POLICIES", () => {
     expect(tags).toContain("projects:org:org-1");
   });
 
-  it("recording:update returns recording + project + org tags", () => {
+  it("recording:update returns recording + transcription history + project + org tags", () => {
     const tags = CACHE_POLICIES["recording:update"]!(
       makeCtx({ input: { recordingId: "rec-1", projectId: "proj-1" } }),
     );
     expect(tags).toContain("recording:rec-1");
+    expect(tags).toContain("transcription-history:rec-1");
     expect(tags).toContain("recordings:project:proj-1");
     expect(tags).toContain("recordings:org:org-1");
     expect(tags).toContain("dashboard:stats:org-1");
+  });
+
+  it("recording:restore returns recording + transcription history + org tags", () => {
+    const tags = CACHE_POLICIES["recording:restore"]!(
+      makeCtx({ input: { recordingId: "rec-1" } }),
+    );
+    expect(tags).toContain("recording:rec-1");
+    expect(tags).toContain("transcription-history:rec-1");
+    expect(tags).toContain("recordings:org:org-1");
   });
 
   it("knowledge_base:create delegates to buildKnowledgeTags", () => {
