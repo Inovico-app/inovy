@@ -32,6 +32,12 @@ interface UseReprocessingStatusReturn {
   refetch: () => Promise<void>;
 }
 
+function isStatusActive(status: ReprocessingStatus | null): boolean {
+  return (
+    !status || status.isReprocessing || status.workflowStatus === "running"
+  );
+}
+
 export function useReprocessingStatus({
   recordingId,
   enabled = true,
@@ -67,8 +73,7 @@ export function useReprocessingStatus({
           errorMessage: newStatus.errorMessage,
         });
 
-        // Stop polling if not reprocessing
-        if (!newStatus.isReprocessing) {
+        if (!isStatusActive(newStatus)) {
           setIsPolling(false);
         }
       }
@@ -76,7 +81,9 @@ export function useReprocessingStatus({
       setError(null);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to check reprocessing status"
+        err instanceof Error
+          ? err.message
+          : "Failed to check reprocessing status",
       );
     }
   }, [recordingId, onStatusChange]);
@@ -88,10 +95,7 @@ export function useReprocessingStatus({
       return;
     }
 
-    // Only poll if reprocessing is active or we haven't checked yet
-    const shouldPoll = !reprocessingStatus || reprocessingStatus.isReprocessing;
-
-    if (!shouldPoll) {
+    if (!isStatusActive(reprocessingStatus)) {
       setIsPolling(false);
       return;
     }
@@ -119,4 +123,3 @@ export function useReprocessingStatus({
     refetch: fetchStatus,
   };
 }
-
