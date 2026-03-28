@@ -516,6 +516,8 @@ export class KnowledgeModule {
         updatePayload.context = data.context?.trim() ?? null;
       if (data.examples !== undefined) updatePayload.examples = data.examples;
       if (data.isActive !== undefined) updatePayload.isActive = data.isActive;
+      if (data.boost !== undefined) updatePayload.boost = data.boost;
+      if (data.category !== undefined) updatePayload.category = data.category;
 
       const updated = await KnowledgeBaseEntriesQueries.updateEntry(
         entryId,
