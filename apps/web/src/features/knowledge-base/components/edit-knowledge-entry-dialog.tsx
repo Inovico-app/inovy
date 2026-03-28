@@ -54,6 +54,8 @@ export function EditKnowledgeEntryDialog({
       definition: entry.definition,
       context: entry.context || "",
       examples: entry.examples?.join("\n") || "",
+      boost: entry.boost != null ? String(entry.boost) : "",
+      category: entry.category ?? "custom",
       isActive: entry.isActive,
     },
   });
@@ -81,13 +83,13 @@ export function EditKnowledgeEntryDialog({
               ? firstFieldErrors._errors[0]
               : undefined;
           toast.error(
-            typeof firstError === "string" ? firstError : "Validation failed"
+            typeof firstError === "string" ? firstError : "Validation failed",
           );
           return;
         }
         toast.error(error.serverError || "Failed to update knowledge entry");
       },
-    }
+    },
   );
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -97,6 +99,8 @@ export function EditKnowledgeEntryDialog({
         definition: entry.definition,
         context: entry.context || "",
         examples: entry.examples?.join("\n") || "",
+        boost: entry.boost != null ? String(entry.boost) : "",
+        category: entry.category ?? "custom",
         isActive: entry.isActive,
       });
     }
@@ -126,9 +130,7 @@ export function EditKnowledgeEntryDialog({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Knowledge Entry</DialogTitle>
-          <DialogDescription>
-            Update the term and definition
-          </DialogDescription>
+          <DialogDescription>Update the term and definition</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

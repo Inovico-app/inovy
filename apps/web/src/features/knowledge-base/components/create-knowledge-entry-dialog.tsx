@@ -56,6 +56,8 @@ export function CreateKnowledgeEntryDialog({
       definition: "",
       context: "",
       examples: "",
+      boost: "",
+      category: "custom",
     },
     mode: "onChange",
   });
