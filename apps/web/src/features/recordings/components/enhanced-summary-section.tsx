@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Collapsible,
@@ -10,13 +11,24 @@ import {
 import { KnowledgeUsageIndicator } from "@/features/knowledge-base/components/knowledge-usage-indicator";
 import type { SummaryResult } from "@/server/cache/summary.cache";
 import { FeedbackWidget } from "./feedback-widget";
-import { CheckCircle2Icon, ChevronDown } from "lucide-react";
-import { useState } from "react";
+import {
+  CheckCircle2Icon,
+  CheckIcon,
+  ChevronDown,
+  CopyIcon,
+} from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import { useJumpToTimestamp } from "../hooks/use-jump-to-timestamp";
+import { useCopyToClipboard } from "../hooks/use-copy-to-clipboard";
 import { EditSummaryDialog } from "./edit-summary-dialog";
 import { SummaryVersionHistoryDialog } from "./summary-version-history-dialog";
 import { TimestampButton } from "./timestamp-button";
 import { UserNotesEditor } from "./user-notes-editor";
+import { CopyBlockButton } from "./copy-block-button";
+import {
+  formatBlockAsMarkdown,
+  formatFullSummaryAsMarkdown,
+} from "../lib/format-summary-markdown";
 import { useTranslations } from "next-intl";
 
 interface EnhancedSummarySectionProps {
@@ -44,6 +56,37 @@ export function EnhancedSummarySection({
   const [quotesOpen, setQuotesOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(true);
   const jumpToTimestamp = useJumpToTimestamp();
+  const { isCopied: isAllCopied, copyToClipboard: copyAll } =
+    useCopyToClipboard();
+
+  const handleCopyAll = useCallback(() => {
+    if (summary) {
+      void copyAll(formatFullSummaryAsMarkdown(summary.content));
+    }
+  }, [copyAll, summary]);
+
+  const formattedBlocks = useMemo(
+    () => ({
+      overview: formatBlockAsMarkdown(
+        "overview",
+        summary?.content.overview ?? "",
+      ),
+      topics: formatBlockAsMarkdown("topics", summary?.content.topics ?? []),
+      decisions: formatBlockAsMarkdown(
+        "decisions",
+        summary?.content.decisions ?? [],
+      ),
+      speakerContributions: formatBlockAsMarkdown(
+        "speakerContributions",
+        summary?.content.speakerContributions ?? [],
+      ),
+      importantQuotes: formatBlockAsMarkdown(
+        "importantQuotes",
+        summary?.content.importantQuotes ?? [],
+      ),
+    }),
+    [summary?.content],
+  );
 
   if (!summary) {
     return (
@@ -78,6 +121,20 @@ export function EnhancedSummarySection({
             )}
           </div>
           <div className="flex items-center gap-2 print:hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="opacity-50 hover:opacity-100 transition-opacity"
+              onClick={handleCopyAll}
+              aria-label={t("summary.copyAll")}
+            >
+              {isAllCopied ? (
+                <CheckIcon className="size-3.5" />
+              ) : (
+                <CopyIcon className="size-3.5" />
+              )}
+              {t("summary.copyAll")}
+            </Button>
             <SummaryVersionHistoryDialog recordingId={recordingId} />
             <EditSummaryDialog
               recordingId={recordingId}
@@ -90,16 +147,22 @@ export function EnhancedSummarySection({
         {/* Overview Section */}
         {summary.content.overview && (
           <Collapsible open={overviewOpen} onOpenChange={setOverviewOpen}>
-            <CollapsibleTrigger className="flex items-center justify-between w-full group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
-              <h3 className="font-semibold text-base">
-                {t("summary.overview")}
-              </h3>
-              <ChevronDown
-                className={`h-4 w-4 transition-transform print:hidden ${
-                  overviewOpen ? "rotate-180" : ""
-                }`}
+            <div className="flex items-center gap-1">
+              <CollapsibleTrigger className="flex flex-1 items-center justify-between group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
+                <h3 className="font-semibold text-base">
+                  {t("summary.overview")}
+                </h3>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform print:hidden ${
+                    overviewOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </CollapsibleTrigger>
+              <CopyBlockButton
+                text={formattedBlocks.overview}
+                label={t("summary.copyOverview")}
               />
-            </CollapsibleTrigger>
+            </div>
             <CollapsibleContent className="pt-2 px-2">
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {summary.content.overview}
@@ -111,16 +174,22 @@ export function EnhancedSummarySection({
         {/* Key Topics Section */}
         {summary.content.topics && summary.content.topics.length > 0 && (
           <Collapsible open={topicsOpen} onOpenChange={setTopicsOpen}>
-            <CollapsibleTrigger className="flex items-center justify-between w-full group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
-              <h3 className="font-semibold text-base">
-                Key Topics ({summary.content.topics.length})
-              </h3>
-              <ChevronDown
-                className={`h-4 w-4 transition-transform print:hidden ${
-                  topicsOpen ? "rotate-180" : ""
-                }`}
+            <div className="flex items-center gap-1">
+              <CollapsibleTrigger className="flex flex-1 items-center justify-between group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
+                <h3 className="font-semibold text-base">
+                  Key Topics ({summary.content.topics.length})
+                </h3>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform print:hidden ${
+                    topicsOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </CollapsibleTrigger>
+              <CopyBlockButton
+                text={formattedBlocks.topics}
+                label={t("summary.copyTopics")}
               />
-            </CollapsibleTrigger>
+            </div>
             <CollapsibleContent className="pt-2 px-2">
               <ul className="space-y-2">
                 {summary.content.topics.map((topic, idx) => (
@@ -140,16 +209,22 @@ export function EnhancedSummarySection({
         {/* Decisions Section */}
         {summary.content.decisions && summary.content.decisions.length > 0 && (
           <Collapsible open={decisionsOpen} onOpenChange={setDecisionsOpen}>
-            <CollapsibleTrigger className="flex items-center justify-between w-full group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
-              <h3 className="font-semibold text-base">
-                Decisions ({summary.content.decisions.length})
-              </h3>
-              <ChevronDown
-                className={`h-4 w-4 transition-transform print:hidden ${
-                  decisionsOpen ? "rotate-180" : ""
-                }`}
+            <div className="flex items-center gap-1">
+              <CollapsibleTrigger className="flex flex-1 items-center justify-between group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
+                <h3 className="font-semibold text-base">
+                  Decisions ({summary.content.decisions.length})
+                </h3>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform print:hidden ${
+                    decisionsOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </CollapsibleTrigger>
+              <CopyBlockButton
+                text={formattedBlocks.decisions}
+                label={t("summary.copyDecisions")}
               />
-            </CollapsibleTrigger>
+            </div>
             <CollapsibleContent className="pt-2 px-2">
               <ul className="space-y-2">
                 {summary.content.decisions.map((decision, idx) => (
@@ -173,17 +248,23 @@ export function EnhancedSummarySection({
               open={contributionsOpen}
               onOpenChange={setContributionsOpen}
             >
-              <CollapsibleTrigger className="flex items-center justify-between w-full group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
-                <h3 className="font-semibold text-base">
-                  Speaker Contributions (
-                  {summary.content.speakerContributions.length})
-                </h3>
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform print:hidden ${
-                    contributionsOpen ? "rotate-180" : ""
-                  }`}
+              <div className="flex items-center gap-1">
+                <CollapsibleTrigger className="flex flex-1 items-center justify-between group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
+                  <h3 className="font-semibold text-base">
+                    Speaker Contributions (
+                    {summary.content.speakerContributions.length})
+                  </h3>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform print:hidden ${
+                      contributionsOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </CollapsibleTrigger>
+                <CopyBlockButton
+                  text={formattedBlocks.speakerContributions}
+                  label={t("summary.copySpeakerContributions")}
                 />
-              </CollapsibleTrigger>
+              </div>
               <CollapsibleContent className="pt-2 px-2">
                 <div className="space-y-4">
                   {summary.content.speakerContributions.map((speaker, idx) => (
@@ -212,16 +293,22 @@ export function EnhancedSummarySection({
         {summary.content.importantQuotes &&
           summary.content.importantQuotes.length > 0 && (
             <Collapsible open={quotesOpen} onOpenChange={setQuotesOpen}>
-              <CollapsibleTrigger className="flex items-center justify-between w-full group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
-                <h3 className="font-semibold text-base">
-                  Important Quotes ({summary.content.importantQuotes.length})
-                </h3>
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform print:hidden ${
-                    quotesOpen ? "rotate-180" : ""
-                  }`}
+              <div className="flex items-center gap-1">
+                <CollapsibleTrigger className="flex flex-1 items-center justify-between group hover:bg-muted/50 p-2 rounded-md print:bg-transparent">
+                  <h3 className="font-semibold text-base">
+                    Important Quotes ({summary.content.importantQuotes.length})
+                  </h3>
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform print:hidden ${
+                      quotesOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </CollapsibleTrigger>
+                <CopyBlockButton
+                  text={formattedBlocks.importantQuotes}
+                  label={t("summary.copyImportantQuotes")}
                 />
-              </CollapsibleTrigger>
+              </div>
               <CollapsibleContent className="pt-2 px-2">
                 <div className="space-y-3">
                   {summary.content.importantQuotes.map((quote, idx) => (
