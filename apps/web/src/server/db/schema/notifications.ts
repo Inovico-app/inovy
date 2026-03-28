@@ -23,6 +23,7 @@ export const notificationTypeEnum = [
   "meeting_prep_reminder",
   "meeting_followup_ready",
   "meeting_post_action_complete",
+  "task_assigned",
 ] as const;
 export type NotificationType = (typeof notificationTypeEnum)[number];
 

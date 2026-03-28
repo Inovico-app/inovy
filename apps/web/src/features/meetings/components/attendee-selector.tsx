@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import { AttendeeEmailInput } from "./attendee-email-input";
-import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
+import { useOrganizationMembers } from "@/features/tasks/hooks/use-organization-members";
 import { getUserDisplayName } from "@/lib/formatters/display-formatters";
 import { useTranslations } from "next-intl";
 
@@ -27,8 +27,8 @@ export function AttendeeSelector({
   disabled = false,
 }: AttendeeSelectorProps) {
   const t = useTranslations("meetings");
-  const { data: organizationUsers = [], isLoading: loadingUsers } =
-    useOrganizationUsersQuery();
+  const { members: organizationUsers, isLoading: loadingUsers } =
+    useOrganizationMembers();
 
   // Get set of organization member emails for deduplication
   const orgMemberEmails = useMemo(

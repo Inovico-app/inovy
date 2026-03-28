@@ -17,6 +17,7 @@ import type { Task } from "@/server/db/schema/tasks";
 import type { TaskWithContextDto } from "@/server/dto/task.dto";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { useTaskAssignee } from "../hooks/use-task-assignee";
 import { TaskEditDialog } from "./task-edit-dialog";
 
 interface TaskCardProps {
@@ -62,6 +63,12 @@ export function TaskCard({
     completed: t("statusCompleted"),
     cancelled: t("statusCancelled"),
   };
+
+  const { assigneeDisplay, assigneeInitials } = useTaskAssignee(
+    task.assigneeId,
+    task.assigneeName,
+  );
+
   const handleStatusToggle = () => {
     if (!onStatusChange) return;
 
@@ -180,10 +187,16 @@ export function TaskCard({
               </div>
 
               {/* Assignee */}
-              {task.assigneeName && (
-                <div className="flex items-center gap-1">
-                  <User className="h-3 w-3" />
-                  <span>{task.assigneeName}</span>
+              {assigneeDisplay && (
+                <div className="flex items-center gap-1.5">
+                  {assigneeInitials ? (
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-[8px] font-medium text-primary">
+                      {assigneeInitials}
+                    </span>
+                  ) : (
+                    <User className="h-3 w-3" />
+                  )}
+                  <span>{assigneeDisplay}</span>
                 </div>
               )}
 

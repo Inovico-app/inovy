@@ -1,4 +1,4 @@
-import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
+import { useOrganizationMembers } from "@/features/tasks/hooks/use-organization-members";
 import { useMemo } from "react";
 
 interface UseAvailableSpeakersProps {
@@ -19,7 +19,7 @@ export function useAvailableSpeakers({
   speakerNames,
   speakerUserIds,
 }: UseAvailableSpeakersProps): SpeakerOption[] {
-  const { data: users = [] } = useOrganizationUsersQuery();
+  const { members: users } = useOrganizationMembers();
 
   return useMemo(() => {
     const speakers: SpeakerOption[] = [];

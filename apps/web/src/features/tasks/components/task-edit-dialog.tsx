@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import type { TaskDto } from "@/server/dto/task.dto";
 import { useUpdateTaskMutation } from "../hooks/use-update-task-mutation";
+import { useOrganizationMembers } from "../hooks/use-organization-members";
 import { Pencil, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -44,6 +45,8 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
   const [dueDate, setDueDate] = useState(
     task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
   );
+  const [assigneeId, setAssigneeId] = useState(task.assigneeId || "");
+  const { members, isLoading: isLoadingMembers } = useOrganizationMembers();
 
   const priorityLabels = {
     low: t("priorityLow"),
@@ -64,6 +67,13 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const selectedMember = members.find((m) => m.id === assigneeId);
+    const assigneeName = selectedMember
+      ? selectedMember.displayName
+      : assigneeId
+        ? task.assigneeName
+        : null;
+
     await updateMutation.mutateAsync({
       taskId: task.id,
       title,
@@ -71,6 +81,8 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
       priority,
       status,
       dueDate: dueDate ? new Date(dueDate) : null,
+      assigneeId: assigneeId || null,
+      assigneeName: assigneeName || null,
     });
 
     setOpen(false);
@@ -86,6 +98,7 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
       setDueDate(
         task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
       );
+      setAssigneeId(task.assigneeId || "");
     }
     setOpen(newOpen);
   };
@@ -187,6 +200,30 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
             </div>
 
             <div className="grid gap-2">
+              <Label htmlFor="assignee">{t("assigneeLabel")}</Label>
+              <Select
+                value={assigneeId}
+                onValueChange={(value) => setAssigneeId(value ?? "")}
+              >
+                <SelectTrigger id="assignee">
+                  <SelectValue placeholder={t("unassigned")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">
+                    <span className="text-muted-foreground">
+                      {t("unassigned")}
+                    </span>
+                  </SelectItem>
+                  {members.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.displayName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
               <Label htmlFor="dueDate">{t("deadlineLabel")}</Label>
               <Input
                 id="dueDate"
@@ -205,7 +242,12 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
             >
               {tc("cancel")}
             </Button>
-            <Button type="submit" disabled={updateMutation.isPending}>
+            <Button
+              type="submit"
+              disabled={
+                updateMutation.isPending || (!!assigneeId && isLoadingMembers)
+              }
+            >
               {updateMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
