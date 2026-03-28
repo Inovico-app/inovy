@@ -48,7 +48,7 @@ export function OrganizationKnowledgeBaseSection({
 
   const handleEntryUpdated = (updatedEntry: KnowledgeEntryDto) => {
     setEntries((prev) =>
-      prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e))
+      prev.map((e) => (e.id === updatedEntry.id ? updatedEntry : e)),
     );
   };
 
@@ -114,8 +114,6 @@ export function OrganizationKnowledgeBaseSection({
           <TabsContent value="entries" className="mt-4">
             <KnowledgeEntryList
               entries={entries}
-              scope="organization"
-              scopeId={organizationId}
               canEdit={canEdit}
               onEntryUpdated={handleEntryUpdated}
               onEntryDeleted={handleEntryDeleted}
@@ -125,8 +123,6 @@ export function OrganizationKnowledgeBaseSection({
           <TabsContent value="documents" className="mt-4">
             <KnowledgeDocumentList
               documents={documents}
-              scope="organization"
-              scopeId={organizationId}
               canEdit={canEdit}
               onDocumentDeleted={handleDocumentDeleted}
               onUploadClick={() => setShowUploadDocumentDialog(true)}
@@ -157,4 +153,3 @@ export function OrganizationKnowledgeBaseSection({
     </Card>
   );
 }
-

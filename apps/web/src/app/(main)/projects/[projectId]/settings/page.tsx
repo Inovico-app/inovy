@@ -156,7 +156,6 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
               initialProjectDocuments={projectDocuments}
               initialHierarchicalEntries={hierarchicalEntries}
               projectId={projectId}
-              organizationId={project.organizationId}
               canEdit={canEdit}
             />
           </section>

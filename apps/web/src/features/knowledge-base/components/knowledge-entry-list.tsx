@@ -9,7 +9,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { KnowledgeBaseScope } from "@/server/db/schema/knowledge-base-entries";
 import type { KnowledgeEntryDto } from "@/server/dto/knowledge-base.dto";
 import {
   BookOpenIcon,
@@ -24,8 +23,6 @@ import { EditKnowledgeEntryDialog } from "./edit-knowledge-entry-dialog";
 
 interface KnowledgeEntryListProps {
   entries: KnowledgeEntryDto[];
-  scope: KnowledgeBaseScope;
-  scopeId: string | null;
   canEdit: boolean;
   onEntryUpdated: (entry: KnowledgeEntryDto) => void;
   onEntryDeleted: (entryId: string) => void;
@@ -34,8 +31,6 @@ interface KnowledgeEntryListProps {
 
 export function KnowledgeEntryList({
   entries,
-  scope: _scope,
-  scopeId: _scopeId,
   canEdit,
   onEntryUpdated,
   onEntryDeleted,

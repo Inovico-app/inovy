@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { formatFileSizePrecise } from "@/lib/formatters/file-size-formatters";
-import type { KnowledgeBaseScope } from "@/server/db/schema/knowledge-base-entries";
 import type { KnowledgeDocumentDto } from "@/server/dto/knowledge-base.dto";
 import {
   ExternalLinkIcon,
@@ -24,8 +23,6 @@ import { DeleteKnowledgeDocumentDialog } from "./delete-knowledge-document-dialo
 
 interface KnowledgeDocumentListProps {
   documents: KnowledgeDocumentDto[];
-  scope: KnowledgeBaseScope;
-  scopeId: string | null;
   canEdit: boolean;
   onDocumentDeleted: (documentId: string) => void;
   onUploadClick?: () => void;
@@ -43,8 +40,6 @@ const processingStatusConfig: Record<
 
 export function KnowledgeDocumentList({
   documents,
-  scope: _scope,
-  scopeId: _scopeId,
   canEdit,
   onDocumentDeleted,
   onUploadClick,

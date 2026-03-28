@@ -11,6 +11,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { HierarchicalKnowledgeEntryDto } from "@/server/dto/knowledge-base.dto";
 import {
+  KNOWLEDGE_PRIORITY,
+  type KnowledgePriority,
+} from "../constants/knowledge-priority";
+import {
   BookOpenIcon,
   BuildingIcon,
   FolderIcon,
@@ -26,15 +30,13 @@ import { EditKnowledgeEntryDialog } from "./edit-knowledge-entry-dialog";
 
 interface HierarchicalKnowledgeEntryListProps {
   entries: HierarchicalKnowledgeEntryDto[];
-  projectId: string;
-  organizationId: string;
   canEdit: boolean;
   onEntryUpdated: (entry: HierarchicalKnowledgeEntryDto) => void;
   onEntryDeleted: (entryId: string) => void;
 }
 
 const scopeConfig: Record<
-  number,
+  KnowledgePriority,
   {
     label: string;
     variant: "default" | "secondary" | "outline";
@@ -42,20 +44,55 @@ const scopeConfig: Record<
     editable: boolean;
   }
 > = {
-  1: { label: "Project", variant: "default", icon: FolderIcon, editable: true },
-  2: {
+  [KNOWLEDGE_PRIORITY.project]: {
+    label: "Project",
+    variant: "default",
+    icon: FolderIcon,
+    editable: true,
+  },
+  [KNOWLEDGE_PRIORITY.organization]: {
     label: "Organization",
     variant: "secondary",
     icon: BuildingIcon,
     editable: false,
   },
-  3: { label: "Global", variant: "outline", icon: GlobeIcon, editable: false },
+  [KNOWLEDGE_PRIORITY.global]: {
+    label: "Global",
+    variant: "outline",
+    icon: GlobeIcon,
+    editable: false,
+  },
 };
+
+const SCOPE_GROUPS = [
+  {
+    priority: KNOWLEDGE_PRIORITY.project,
+    title: "Project Entries",
+  },
+  {
+    priority: KNOWLEDGE_PRIORITY.organization,
+    title: "Inherited from Organization",
+  },
+  {
+    priority: KNOWLEDGE_PRIORITY.global,
+    title: "Inherited from Global",
+  },
+] as const;
+
+function groupByPriority(entries: HierarchicalKnowledgeEntryDto[]) {
+  const grouped: Record<KnowledgePriority, HierarchicalKnowledgeEntryDto[]> = {
+    [KNOWLEDGE_PRIORITY.project]: [],
+    [KNOWLEDGE_PRIORITY.organization]: [],
+    [KNOWLEDGE_PRIORITY.global]: [],
+  };
+  for (const entry of entries) {
+    grouped[entry.priority as KnowledgePriority]?.push(entry);
+  }
+  return grouped;
+}
 
 export function HierarchicalKnowledgeEntryList({
   entries,
-  projectId: _projectId,
-  organizationId: _organizationId,
   canEdit,
   onEntryUpdated,
   onEntryDeleted,
@@ -82,44 +119,25 @@ export function HierarchicalKnowledgeEntryList({
     );
   }
 
-  const projectEntries = entries.filter((e) => e.priority === 1);
-  const orgEntries = entries.filter((e) => e.priority === 2);
-  const globalEntries = entries.filter((e) => e.priority === 3);
+  const grouped = groupByPriority(entries);
 
   return (
     <div className="space-y-6">
-      {projectEntries.length > 0 && (
-        <ScopeGroup
-          title="Project Entries"
-          priority={1}
-          entries={projectEntries}
-          canEdit={canEdit}
-          onEdit={setEditingEntry}
-          onDelete={setDeletingEntry}
-        />
-      )}
-
-      {orgEntries.length > 0 && (
-        <ScopeGroup
-          title="Inherited from Organization"
-          priority={2}
-          entries={orgEntries}
-          canEdit={canEdit}
-          onEdit={setEditingEntry}
-          onDelete={setDeletingEntry}
-        />
-      )}
-
-      {globalEntries.length > 0 && (
-        <ScopeGroup
-          title="Inherited from Global"
-          priority={3}
-          entries={globalEntries}
-          canEdit={canEdit}
-          onEdit={setEditingEntry}
-          onDelete={setDeletingEntry}
-        />
-      )}
+      {SCOPE_GROUPS.map(({ priority, title }) => {
+        const group = grouped[priority];
+        if (group.length === 0) return null;
+        return (
+          <ScopeGroup
+            key={priority}
+            title={title}
+            priority={priority}
+            entries={group}
+            canEdit={canEdit}
+            onEdit={setEditingEntry}
+            onDelete={setDeletingEntry}
+          />
+        );
+      })}
 
       {editingEntry && (
         <EditKnowledgeEntryDialog
@@ -168,7 +186,7 @@ function ScopeGroup({
   onEdit,
   onDelete,
 }: ScopeGroupProps) {
-  const config = scopeConfig[priority];
+  const config = scopeConfig[priority as KnowledgePriority];
   const isReadOnly = !config.editable;
 
   return (
@@ -205,7 +223,7 @@ interface EntryRowProps {
 }
 
 function EntryRow({ entry, canEdit, onEdit, onDelete }: EntryRowProps) {
-  const config = scopeConfig[entry.priority];
+  const config = scopeConfig[entry.priority as KnowledgePriority];
   const ScopeIcon = config.icon;
 
   return (

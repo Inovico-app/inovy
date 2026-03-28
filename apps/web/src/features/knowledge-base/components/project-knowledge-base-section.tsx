@@ -16,6 +16,7 @@ import type {
   KnowledgeDocumentDto,
   KnowledgeEntryDto,
 } from "@/server/dto/knowledge-base.dto";
+import { KNOWLEDGE_PRIORITY } from "../constants/knowledge-priority";
 import {
   BookOpenIcon,
   FileTextIcon,
@@ -35,7 +36,6 @@ interface ProjectKnowledgeBaseSectionProps {
   initialProjectDocuments: KnowledgeDocumentDto[];
   initialHierarchicalEntries: HierarchicalKnowledgeEntryDto[];
   projectId: string;
-  organizationId: string;
   canEdit: boolean;
 }
 
@@ -44,7 +44,6 @@ export function ProjectKnowledgeBaseSection({
   initialProjectDocuments,
   initialHierarchicalEntries,
   projectId,
-  organizationId,
   canEdit,
 }: ProjectKnowledgeBaseSectionProps) {
   const [projectEntries, setProjectEntries] = useState(
@@ -61,21 +60,18 @@ export function ProjectKnowledgeBaseSection({
   const handleEntryCreated = (entry: KnowledgeEntryDto) => {
     setProjectEntries((prev) => [...prev, entry]);
     setHierarchicalEntries((prev) => {
-      const updated = [...prev];
-      updated.push({ ...entry, priority: 1 });
-      return updated
-        .filter((e, idx, arr) => {
-          const firstIndex = arr.findIndex(
-            (item) => item.term.toLowerCase() === e.term.toLowerCase(),
-          );
-          return idx === firstIndex;
-        })
-        .sort((a, b) => {
-          if (a.priority !== b.priority) {
-            return a.priority - b.priority;
-          }
-          return a.term.localeCompare(b.term);
-        });
+      const newTerm = entry.term.toLowerCase();
+      // Remove any existing entry with the same term (project overrides inherited)
+      const withoutDuplicate = prev.filter(
+        (e) => e.term.toLowerCase() !== newTerm,
+      );
+      return [
+        ...withoutDuplicate,
+        { ...entry, priority: KNOWLEDGE_PRIORITY.project },
+      ].sort((a, b) => {
+        if (a.priority !== b.priority) return a.priority - b.priority;
+        return a.term.localeCompare(b.term);
+      });
     });
   };
 
@@ -85,7 +81,9 @@ export function ProjectKnowledgeBaseSection({
     );
     setHierarchicalEntries((prev) =>
       prev.map((e) =>
-        e.id === updatedEntry.id ? { ...updatedEntry, priority: 1 } : e,
+        e.id === updatedEntry.id
+          ? { ...updatedEntry, priority: KNOWLEDGE_PRIORITY.project }
+          : e,
       ),
     );
   };
@@ -193,8 +191,6 @@ export function ProjectKnowledgeBaseSection({
             <TabsContent value="all">
               <HierarchicalKnowledgeEntryList
                 entries={hierarchicalEntries}
-                projectId={projectId}
-                organizationId={organizationId}
                 canEdit={canEdit}
                 onEntryUpdated={handleEntryUpdated}
                 onEntryDeleted={handleEntryDeleted}
@@ -203,8 +199,6 @@ export function ProjectKnowledgeBaseSection({
             <TabsContent value="project">
               <KnowledgeEntryList
                 entries={projectEntries}
-                scope="project"
-                scopeId={projectId}
                 canEdit={canEdit}
                 onEntryUpdated={handleEntryUpdated}
                 onEntryDeleted={handleEntryDeleted}
@@ -214,8 +208,6 @@ export function ProjectKnowledgeBaseSection({
             <TabsContent value="documents">
               <KnowledgeDocumentList
                 documents={documents}
-                scope="project"
-                scopeId={projectId}
                 canEdit={canEdit}
                 onDocumentDeleted={handleDocumentDeleted}
                 onUploadClick={() => setShowUploadDocumentDialog(true)}
