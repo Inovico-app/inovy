@@ -32,6 +32,12 @@ interface UseReprocessingStatusReturn {
   refetch: () => Promise<void>;
 }
 
+function isStatusActive(status: ReprocessingStatus | null): boolean {
+  return (
+    !status || status.isReprocessing || status.workflowStatus === "running"
+  );
+}
+
 export function useReprocessingStatus({
   recordingId,
   enabled = true,
@@ -67,11 +73,7 @@ export function useReprocessingStatus({
           errorMessage: newStatus.errorMessage,
         });
 
-        // Stop polling when neither reprocessing nor workflow running
-        if (
-          !newStatus.isReprocessing &&
-          newStatus.workflowStatus !== "running"
-        ) {
+        if (!isStatusActive(newStatus)) {
           setIsPolling(false);
         }
       }
@@ -93,13 +95,7 @@ export function useReprocessingStatus({
       return;
     }
 
-    // Poll if we haven't checked yet, reprocessing is active, or workflow is running
-    const shouldPoll =
-      !reprocessingStatus ||
-      reprocessingStatus.isReprocessing ||
-      reprocessingStatus.workflowStatus === "running";
-
-    if (!shouldPoll) {
+    if (!isStatusActive(reprocessingStatus)) {
       setIsPolling(false);
       return;
     }
