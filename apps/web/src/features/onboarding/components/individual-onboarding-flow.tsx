@@ -1,8 +1,10 @@
 "use client";
 
 import { AnimatePresence } from "motion/react";
-import { useGoogleConnection } from "../hooks/use-google-connection";
-import { useMicrosoftConnection } from "../hooks/use-microsoft-connection";
+import {
+  useCalendarConnection,
+  type CalendarProvider,
+} from "../hooks/use-calendar-connection";
 import type { Step } from "../hooks/use-onboarding-steps";
 import { StepTransition } from "./step-transition";
 import { StepAccountType } from "./steps/step-account-type";
@@ -11,8 +13,6 @@ import { StepName } from "./steps/step-name";
 import { StepNewsletter } from "./steps/step-newsletter";
 import { StepReferralSource } from "./steps/step-referral-source";
 import { StepResearchQuestion } from "./steps/step-research-question";
-
-type CalendarProvider = "google" | "microsoft";
 
 interface IndividualOnboardingFlowProps {
   currentStep: Step;
@@ -28,27 +28,7 @@ export function IndividualOnboardingFlow({
   const calendarProvider: CalendarProvider =
     signupMethod === "microsoft" ? "microsoft" : "google";
 
-  const google = useGoogleConnection(currentStep);
-  const microsoft = useMicrosoftConnection(currentStep);
-
-  const calendarProps =
-    calendarProvider === "microsoft"
-      ? {
-          provider: "microsoft" as const,
-          connected: microsoft.microsoftConnected,
-          checkingStatus: microsoft.checkingMicrosoftStatus,
-          onConnect: microsoft.handleConnectMicrosoft,
-          showPermissionDialog: microsoft.showPermissionDialog,
-          onPermissionDialogChange: microsoft.setShowPermissionDialog,
-        }
-      : {
-          provider: "google" as const,
-          connected: google.googleConnected,
-          checkingStatus: google.checkingGoogleStatus,
-          onConnect: google.handleConnectGoogle,
-          showPermissionDialog: google.showPermissionDialog,
-          onPermissionDialogChange: google.setShowPermissionDialog,
-        };
+  const calendar = useCalendarConnection(calendarProvider, currentStep);
 
   return (
     <AnimatePresence mode="wait">
@@ -72,7 +52,14 @@ export function IndividualOnboardingFlow({
 
       {currentStep === 4 && (
         <StepTransition key="step4">
-          <StepCalendar {...calendarProps} />
+          <StepCalendar
+            provider={calendarProvider}
+            connected={calendar.connected}
+            checkingStatus={calendar.checkingStatus}
+            onConnect={calendar.handleConnect}
+            showPermissionDialog={calendar.showPermissionDialog}
+            onPermissionDialogChange={calendar.setShowPermissionDialog}
+          />
         </StepTransition>
       )}
 

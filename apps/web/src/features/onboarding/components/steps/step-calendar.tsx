@@ -5,10 +5,9 @@ import { PermissionExplanationDialog } from "@/features/integrations/google/comp
 import { MsIncrementalPermissionDialog } from "@/features/integrations/microsoft/components/incremental-permission-dialog";
 import { Calendar, CheckCircle2, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import type { CalendarProvider } from "../../hooks/use-calendar-connection";
 import { useUpcomingMeetings } from "../../hooks/use-upcoming-meetings";
 import { UpcomingMeetingsList } from "../upcoming-meetings-list";
-
-type CalendarProvider = "google" | "microsoft";
 
 interface StepCalendarProps {
   provider: CalendarProvider;
