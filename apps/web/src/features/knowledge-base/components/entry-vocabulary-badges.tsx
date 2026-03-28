@@ -18,7 +18,7 @@ export function EntryVocabularyBadges({
           {boost}x
         </Badge>
       )}
-      {category && category !== "custom" && (
+      {category !== "custom" && (
         <Badge
           variant="outline"
           className={`text-[10px] py-0 border ${CATEGORY_CONFIG[category].color}`}

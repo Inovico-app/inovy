@@ -138,10 +138,23 @@ function parseCsv(content: string): ParseResult {
       }
     }
 
-    const context =
-      contextIdx !== -1 && cols[contextIdx]?.trim()
-        ? cols[contextIdx].trim()
-        : null;
+    let context: string | null = null;
+    if (contextIdx !== -1 && cols[contextIdx]?.trim()) {
+      const trimmed = cols[contextIdx].trim();
+      if (trimmed.length > 1000) {
+        errors.push(`Row ${i + 1}: context exceeds 1000 characters`);
+        entries.push({
+          term,
+          definition,
+          boost: null,
+          category: "custom",
+          context: null,
+          error: "Context exceeds 1000 characters",
+        });
+        continue;
+      }
+      context = trimmed;
+    }
 
     entries.push({ term, definition, boost, category, context });
   }

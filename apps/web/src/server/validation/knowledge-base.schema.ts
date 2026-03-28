@@ -45,10 +45,7 @@ export const createKnowledgeEntrySchema = z
       .max(2, "Boost must be at most 2")
       .nullable()
       .optional(),
-    category: z
-      .enum(["medical", "legal", "technical", "custom"])
-      .optional()
-      .default("custom"),
+    category: z.enum(vocabularyCategoryEnum).optional().default("custom"),
   })
   .superRefine((data, ctx) => {
     if (data.scope === "global") {

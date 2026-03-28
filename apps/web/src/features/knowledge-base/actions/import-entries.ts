@@ -45,16 +45,16 @@ export const importKnowledgeEntriesAction = authorizedActionClient
     const { scope, scopeId, entries } = parsedInput;
     const { user, organizationId } = ctx;
 
-    if (!user) {
+    if (!user || !organizationId) {
       throw ActionErrors.unauthenticated(
-        "User not found",
+        "User or organization not found",
         "import-knowledge-entries",
       );
     }
 
     const auth: AuthContext = {
-      user: ctx.user!,
-      organizationId: ctx.organizationId!,
+      user,
+      organizationId,
       userTeamIds: ctx.userTeamIds ?? [],
     };
 
