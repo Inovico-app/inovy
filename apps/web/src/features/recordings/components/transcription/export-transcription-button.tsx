@@ -13,7 +13,7 @@ import {
   exportAsSRT,
   exportAsText,
 } from "@/features/recordings/lib/export-transcription-utils";
-import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
+import { useOrganizationMembers } from "@/features/tasks/hooks/use-organization-members";
 import type { Utterance } from "@/server/dto/ai-insight.dto";
 import { Download } from "lucide-react";
 import { useCallback, useMemo } from "react";
@@ -33,7 +33,7 @@ export function ExportTranscriptionButton({
   speakerUserIds,
 }: ExportTranscriptionButtonProps) {
   const t = useTranslations("recordings");
-  const { data: users = [] } = useOrganizationUsersQuery();
+  const { members: users } = useOrganizationMembers();
 
   // Create user map for efficient lookup
   const userMap = useMemo(() => {

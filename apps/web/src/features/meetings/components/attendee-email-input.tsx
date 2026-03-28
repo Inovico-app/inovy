@@ -15,7 +15,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { useOrganizationUsersQuery } from "@/features/tasks/hooks/use-organization-users-query";
+import { useOrganizationMembers } from "@/features/tasks/hooks/use-organization-members";
 import { getUserDisplayName } from "@/lib/formatters/display-formatters";
 import { useTranslations } from "next-intl";
 
@@ -35,7 +35,7 @@ export function AttendeeEmailInput({
   const t = useTranslations("meetings");
   const [emailSuggestionsOpen, setEmailSuggestionsOpen] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
-  const { data: organizationUsers = [] } = useOrganizationUsersQuery();
+  const { members: organizationUsers } = useOrganizationMembers();
 
   // Filter organization users based on email input
   const emailSuggestions = useMemo(() => {

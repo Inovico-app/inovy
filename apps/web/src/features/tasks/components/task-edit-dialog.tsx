@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import type { TaskDto } from "@/server/dto/task.dto";
 import { useUpdateTaskMutation } from "../hooks/use-update-task-mutation";
-import { useOrganizationUsersQuery } from "../hooks/use-organization-users-query";
+import { useOrganizationMembers } from "../hooks/use-organization-members";
 import { Pencil, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -46,7 +46,7 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
     task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
   );
   const [assigneeId, setAssigneeId] = useState(task.assigneeId || "");
-  const { data: orgUsers = [] } = useOrganizationUsersQuery();
+  const { members, isLoading: isLoadingMembers } = useOrganizationMembers();
 
   const priorityLabels = {
     low: t("priorityLow"),
@@ -67,12 +67,12 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const selectedUser = orgUsers.find((u) => u.id === assigneeId);
-    const assigneeName = selectedUser
-      ? [selectedUser.given_name, selectedUser.family_name]
-          .filter(Boolean)
-          .join(" ") || selectedUser.email
-      : null;
+    const selectedMember = members.find((m) => m.id === assigneeId);
+    const assigneeName = selectedMember
+      ? selectedMember.displayName
+      : assigneeId
+        ? task.assigneeName
+        : null;
 
     await updateMutation.mutateAsync({
       taskId: task.id,
@@ -214,15 +214,9 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
                       {t("unassigned")}
                     </span>
                   </SelectItem>
-                  {orgUsers.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      <div className="flex items-center gap-2">
-                        <span>
-                          {[user.given_name, user.family_name]
-                            .filter(Boolean)
-                            .join(" ") || user.email}
-                        </span>
-                      </div>
+                  {members.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.displayName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -248,7 +242,12 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
             >
               {tc("cancel")}
             </Button>
-            <Button type="submit" disabled={updateMutation.isPending}>
+            <Button
+              type="submit"
+              disabled={
+                updateMutation.isPending || (!!assigneeId && isLoadingMembers)
+              }
+            >
               {updateMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
