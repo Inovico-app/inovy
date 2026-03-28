@@ -292,4 +292,46 @@ export class KnowledgeBaseEntriesQueries {
       a.term.localeCompare(b.term),
     );
   }
+
+  /**
+   * Bulk create knowledge base entries (for CSV/TXT import)
+   */
+  static async bulkCreateEntries(
+    entries: CreateKnowledgeEntryDto[],
+  ): Promise<KnowledgeEntryDto[]> {
+    if (entries.length === 0) return [];
+
+    const values = entries.map((data) => ({
+      scope: data.scope,
+      scopeId: data.scopeId,
+      term: data.term,
+      definition: data.definition,
+      context: data.context ?? null,
+      examples: data.examples ?? null,
+      boost: data.boost ?? null,
+      category: data.category ?? "custom",
+      createdById: data.createdById,
+    }));
+
+    const inserted = await db
+      .insert(knowledgeBaseEntries)
+      .values(values)
+      .returning();
+
+    return inserted.map((entry) => ({
+      id: entry.id,
+      scope: entry.scope,
+      scopeId: entry.scopeId,
+      term: entry.term,
+      definition: entry.definition,
+      context: entry.context,
+      examples: entry.examples,
+      boost: entry.boost,
+      category: entry.category,
+      isActive: entry.isActive,
+      createdById: entry.createdById,
+      createdAt: entry.createdAt,
+      updatedAt: entry.updatedAt,
+    }));
+  }
 }
