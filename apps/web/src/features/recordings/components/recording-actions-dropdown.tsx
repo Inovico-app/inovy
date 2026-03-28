@@ -57,7 +57,7 @@ export function RecordingActionsDropdown({
           {/* Upload Recording */}
           <DropdownMenuItem onClick={() => setShowUploadModal(true)}>
             <UploadIcon className="h-4 w-4 mr-2" />
-            {t("upload")}
+            {t("actions.upload")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

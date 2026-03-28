@@ -179,6 +179,7 @@
     "uploaded": "Uploaded {date}",
     "newRecording": "New Recording",
     "live": "Live",
+    "upload": "Upload",
     "startLiveRecording": "Start Live Recording"
   },
   "bulkMove": {
