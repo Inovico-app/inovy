@@ -1,7 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button, type buttonVariants } from "@/components/ui/button";
 import type { KnowledgeBaseScope } from "@/server/db/schema/knowledge-base-entries";
+import type { VariantProps } from "class-variance-authority";
 import { UploadIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
@@ -11,8 +12,8 @@ import { UploadKnowledgeDocumentDialog } from "./upload-knowledge-document-dialo
 interface UploadDocumentButtonProps {
   scope: KnowledgeBaseScope;
   scopeId: string;
-  variant?: "default" | "outline" | "ghost" | "link";
-  size?: "default" | "sm" | "lg" | "icon";
+  variant?: VariantProps<typeof buttonVariants>["variant"];
+  size?: VariantProps<typeof buttonVariants>["size"];
 }
 
 export function UploadDocumentButton({

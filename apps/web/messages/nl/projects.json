@@ -119,7 +119,7 @@
   "knowledgeContextOrg": "Organisatie",
   "knowledgeContextManage": "Documenten beheren",
   "knowledgeContextNoDocuments": "Geen documenten geconfigureerd",
-  "knowledgeContextAddDocuments": "Documenten toevoegen",
+
   "knowledgeContextDescription": "Deze documenten bieden context voor AI-transcripties en samenvattingen in dit project.",
   "knowledgeContextProcessed": "Verwerkt",
   "knowledgeContextProcessing": "Verwerken",

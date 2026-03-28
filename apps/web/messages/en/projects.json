@@ -119,7 +119,7 @@
   "knowledgeContextOrg": "Organization",
   "knowledgeContextManage": "Manage documents",
   "knowledgeContextNoDocuments": "No documents configured",
-  "knowledgeContextAddDocuments": "Add documents",
+
   "knowledgeContextDescription": "These documents provide context for AI transcriptions and summaries in this project.",
   "knowledgeContextProcessed": "Processed",
   "knowledgeContextProcessing": "Processing",
