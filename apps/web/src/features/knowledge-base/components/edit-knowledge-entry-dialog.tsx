@@ -18,8 +18,19 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  CATEGORY_CONFIG,
+  VOCABULARY_CATEGORIES,
+} from "../lib/vocabulary-category";
 import type { KnowledgeEntryDto } from "@/server/dto/knowledge-base.dto";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { useAction } from "next-safe-action/hooks";
@@ -115,6 +126,13 @@ export function EditKnowledgeEntryDialog({
           .filter((ex) => ex.length > 0)
       : null;
 
+    const boostValue =
+      typeof values.boost === "string"
+        ? values.boost === ""
+          ? null
+          : parseFloat(values.boost)
+        : values.boost;
+
     updateEntry({
       id: entry.id,
       term: values.term,
@@ -122,6 +140,8 @@ export function EditKnowledgeEntryDialog({
       context: values.context || null,
       examples: examplesArray,
       isActive: values.isActive,
+      boost: boostValue,
+      category: values.category,
     });
   };
 
@@ -189,6 +209,59 @@ export function EditKnowledgeEntryDialog({
                 </FormItem>
               )}
             />
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="boost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Transcription Boost (optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={2}
+                        step={0.1}
+                        placeholder="Default (no boost)"
+                        disabled={isUpdating}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      disabled={isUpdating}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {VOCABULARY_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {CATEGORY_CONFIG[cat].label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
