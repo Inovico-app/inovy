@@ -316,6 +316,21 @@ export const auth = betterAuth({
               required: false,
               input: true,
             },
+            scheduledDeletionAt: {
+              type: "date",
+              required: false,
+              defaultValue: null,
+              description:
+                "When set, the organization is scheduled for deletion at this time",
+              input: false,
+            },
+            deletionRequestedById: {
+              type: "string",
+              required: false,
+              defaultValue: null,
+              description: "User ID of who requested the deletion",
+              input: false,
+            },
           },
         },
       },
