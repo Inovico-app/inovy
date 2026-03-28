@@ -3,7 +3,10 @@ import "server-only";
 import { err, ok } from "neverthrow";
 
 import type { BetterAuthUser } from "@/lib/auth";
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import {
+  type BetterAuthMember,
+  getBetterAuthSession,
+} from "@/lib/better-auth-session";
 import {
   ActionErrors,
   type ActionResult,
@@ -18,6 +21,7 @@ import {
  */
 export interface AuthContext {
   readonly user: BetterAuthUser;
+  readonly member?: BetterAuthMember | null;
   readonly organizationId: string;
   readonly userTeamIds: string[];
 }
@@ -47,7 +51,7 @@ export async function resolveAuthContext(
     );
   }
 
-  const { user, organization, userTeamIds } = sessionResult.value;
+  const { user, organization, member, userTeamIds } = sessionResult.value;
 
   if (!user) {
     return err(
@@ -70,6 +74,7 @@ export async function resolveAuthContext(
 
   return ok({
     user,
+    member: member ?? null,
     organizationId: organization.id,
     userTeamIds: userTeamIds ?? [],
   } satisfies AuthContext);

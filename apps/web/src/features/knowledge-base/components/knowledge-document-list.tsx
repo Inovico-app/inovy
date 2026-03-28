@@ -3,13 +3,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -38,21 +31,14 @@ interface KnowledgeDocumentListProps {
   onUploadClick?: () => void;
 }
 
-const processingStatusColors: Record<
+const processingStatusConfig: Record<
   string,
-  "default" | "secondary" | "destructive"
+  { variant: "default" | "secondary" | "destructive"; label: string }
 > = {
-  completed: "default",
-  processing: "secondary",
-  pending: "secondary",
-  failed: "destructive",
-};
-
-const processingStatusLabels: Record<string, string> = {
-  completed: "Processed",
-  processing: "Processing",
-  pending: "Pending",
-  failed: "Failed",
+  completed: { variant: "default", label: "Processed" },
+  processing: { variant: "secondary", label: "Processing" },
+  pending: { variant: "secondary", label: "Pending" },
+  failed: { variant: "destructive", label: "Failed" },
 };
 
 export function KnowledgeDocumentList({
@@ -68,94 +54,118 @@ export function KnowledgeDocumentList({
 
   if (documents.length === 0) {
     return (
-      <div className="text-center py-8">
-        <FileTextIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-        <p className="text-muted-foreground font-medium">
-          No knowledge documents yet
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-4">
+          <FileTextIcon className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <p className="text-sm font-medium text-foreground">
+          No documents uploaded yet
         </p>
-        <p className="text-sm text-muted-foreground mt-2 mb-4">
+        <p className="text-sm text-muted-foreground mt-1 max-w-sm">
           Upload documents to extract terms and definitions automatically
         </p>
         {canEdit && onUploadClick && (
-          <Button onClick={onUploadClick} variant="default" size="sm">
-            <UploadIcon className="h-4 w-4 mr-2" />
-            Batch Upload Documents
+          <Button onClick={onUploadClick} size="sm" className="mt-4">
+            <UploadIcon className="h-3.5 w-3.5 mr-1.5" />
+            Upload Documents
           </Button>
         )}
       </div>
     );
   }
 
-
   return (
-    <div className="space-y-4">
-      {documents.map((document) => (
-        <Card key={document.id}>
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <FileTextIcon className="h-5 w-5" />
-                  {document.title}
-                </CardTitle>
-                {document.description && (
-                  <CardDescription className="mt-2">
-                    {document.description}
-                  </CardDescription>
-                )}
-                <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
-                  <span>{document.fileName}</span>
-                  <span>•</span>
-                  <span>{formatFileSizePrecise(document.fileSize)}</span>
-                  <span>•</span>
-                  <span>{document.fileType}</span>
-                </div>
-              </div>
-              {canEdit && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label={`Document actions for ${document.title}`} />}>
-                    <MoreVerticalIcon className="h-4 w-4" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem render={<a href={`/api/documents/${document.id}/view`} target="_blank" rel="noopener noreferrer" />}>
-                      <ExternalLinkIcon className="h-4 w-4 mr-2" />
-                      Open Document
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => setDeletingDocument(document)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <TrashIcon className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Badge
-                variant={
-                  processingStatusColors[document.processingStatus] ||
-                  "secondary"
-                }
-              >
-                {processingStatusLabels[document.processingStatus] ||
-                  document.processingStatus}
-              </Badge>
-              {document.processingError && (
-                <span className="text-sm text-destructive">
-                  Error: {document.processingError}
-                </span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="space-y-2">
+      {documents.map((document) => {
+        const statusConfig = processingStatusConfig[
+          document.processingStatus
+        ] ?? {
+          variant: "secondary" as const,
+          label: document.processingStatus,
+        };
 
-      {/* Delete Dialog */}
+        return (
+          <div
+            key={document.id}
+            className="group flex items-start gap-3 rounded-lg border border-border/60 bg-card p-3.5 transition-colors hover:border-border"
+          >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+              <FileTextIcon className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground truncate">
+                  {document.title}
+                </span>
+                <Badge
+                  variant={statusConfig.variant}
+                  className="text-[10px] py-0 shrink-0"
+                >
+                  {statusConfig.label}
+                </Badge>
+              </div>
+              {document.description && (
+                <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                  {document.description}
+                </p>
+              )}
+              <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground/80">
+                <span className="truncate">{document.fileName}</span>
+                <span className="text-border">·</span>
+                <span className="shrink-0">
+                  {formatFileSizePrecise(document.fileSize)}
+                </span>
+                <span className="text-border">·</span>
+                <span className="shrink-0">{document.fileType}</span>
+              </div>
+              {document.processingError && (
+                <p className="mt-1.5 text-xs text-destructive">
+                  {document.processingError}
+                </p>
+              )}
+            </div>
+            {canEdit && (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label={`Actions for ${document.title}`}
+                    />
+                  }
+                >
+                  <MoreVerticalIcon className="h-4 w-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    render={
+                      <a
+                        href={`/api/documents/${document.id}/view`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      />
+                    }
+                  >
+                    <ExternalLinkIcon className="h-4 w-4 mr-2" />
+                    Open Document
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setDeletingDocument(document)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <TrashIcon className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        );
+      })}
+
       {deletingDocument && (
         <DeleteKnowledgeDocumentDialog
           document={deletingDocument}
@@ -170,4 +180,3 @@ export function KnowledgeDocumentList({
     </div>
   );
 }
-

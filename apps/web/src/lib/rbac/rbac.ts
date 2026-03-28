@@ -170,6 +170,11 @@ export function canAccessOrganizationChat(user: BetterAuthUser): boolean {
 export async function isProjectManager(
   user: BetterAuthUser,
   _projectId: string,
+  member?: BetterAuthMember | null,
 ): Promise<boolean> {
-  return isOrganizationAdmin(user) || user.role === "manager";
+  return (
+    isOrganizationAdmin(user, member) ||
+    user.role === "manager" ||
+    member?.role === "manager"
+  );
 }

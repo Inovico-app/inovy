@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { ProjectKnowledgeBaseSection } from "@/features/knowledge-base/components/project-knowledge-base-section";
 import { EditProjectForm } from "@/features/projects/components/edit-project-form";
 import { ProjectTemplateSection } from "@/features/projects/components/project-templates/project-template-section";
@@ -17,7 +18,12 @@ import {
   getCachedKnowledgeEntries,
 } from "@/server/cache/knowledge-base.cache";
 import { ProjectService } from "@/server/services/project.service";
-import { ArrowLeftIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  FileTextIcon,
+  SettingsIcon,
+  SparklesIcon,
+} from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -27,14 +33,6 @@ interface ProjectSettingsPageProps {
   params: Promise<{ projectId: string }>;
 }
 
-/**
- * Render the project settings UI for a given project.
- *
- * Fetches the project by ID and aborts rendering with a 404 via `notFound()` if the project is missing or inaccessible.
- *
- * @param params - An object (or a promise resolving to an object) with route parameters containing `projectId`.
- * @returns The JSX element for the project's settings page.
- */
 async function ProjectSettings({ params }: ProjectSettingsPageProps) {
   const { projectId } = await params;
 
@@ -43,7 +41,6 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
     notFound();
   }
 
-  // Verify project exists and user has access
   const projectResult = await ProjectService.getProjectById(
     projectId,
     authResult.value,
@@ -55,10 +52,12 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
 
   const project = projectResult.value;
   const t = await getTranslations("projects");
-  // Check if user can edit (project manager or admin)
-  const canEdit = await isProjectManager(authResult.value.user, projectId);
+  const canEdit = await isProjectManager(
+    authResult.value.user,
+    projectId,
+    authResult.value.member,
+  );
 
-  // Fetch knowledge base data in parallel
   const [projectEntries, projectDocuments, hierarchicalEntries] =
     await Promise.all([
       getCachedKnowledgeEntries("project", projectId),
@@ -67,121 +66,147 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
     ]);
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="container mx-auto py-6 px-4 sm:py-10 sm:px-6">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-2"
-            render={<Link href={`/projects/${projectId}`} />}
-            nativeButton={false}
+        <div className="mb-8">
+          <Link
+            href={`/projects/${projectId}`}
+            className="group inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
           >
-            <ArrowLeftIcon className="h-4 w-4" />
+            <ArrowLeftIcon className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
             {t("backToProject")}
-          </Button>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold text-foreground">
-                {project.name} - {t("settingsTitle")}
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <SettingsIcon className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                {project.name}
               </h1>
+              <p className="text-sm text-muted-foreground">
+                {t("settingsTitle")}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Settings Cards */}
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Project Details Section */}
           {canEdit && (
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("projectDetails")}</CardTitle>
-                <CardDescription>
-                  Update your project name, description, and team assignment.
-                  Changing the team controls who can access this project and its
-                  recordings.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <EditProjectForm
-                  projectId={projectId}
-                  initialData={{
-                    name: project.name,
-                    description: project.description,
-                    teamId: project.teamId,
-                  }}
-                />
-              </CardContent>
-            </Card>
+            <section>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <FileTextIcon className="h-4.5 w-4.5 text-muted-foreground" />
+                    {t("projectDetails")}
+                  </CardTitle>
+                  <CardDescription>
+                    {t("projectDetailsDescription")}
+                  </CardDescription>
+                </CardHeader>
+                <Separator />
+                <CardContent className="pt-6">
+                  <EditProjectForm
+                    projectId={projectId}
+                    initialData={{
+                      name: project.name,
+                      description: project.description,
+                      teamId: project.teamId,
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            </section>
           )}
 
           {/* Project Templates Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t("projectTemplates")}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Define project-specific guidelines that will be included in AI
-                responses. These instructions will help shape how the AI
-                assistant responds to queries about this project.
-              </p>
-              <Suspense fallback={<TemplateLoadingSkeleton />}>
-                <ProjectTemplateSection projectId={projectId} />
-              </Suspense>
-            </CardContent>
-          </Card>
+          <section>
+            <Card>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <SparklesIcon className="h-4.5 w-4.5 text-muted-foreground" />
+                      {t("projectTemplates")}
+                    </CardTitle>
+                    <CardDescription className="mt-1.5">
+                      {t("projectTemplatesDescription")}
+                    </CardDescription>
+                  </div>
+                  <Badge variant="secondary" className="shrink-0">
+                    AI
+                  </Badge>
+                </div>
+              </CardHeader>
+              <Separator />
+              <CardContent className="pt-6">
+                <Suspense fallback={<TemplateLoadingSkeleton />}>
+                  <ProjectTemplateSection projectId={projectId} />
+                </Suspense>
+              </CardContent>
+            </Card>
+          </section>
 
           {/* Knowledge Base Section */}
-          <ProjectKnowledgeBaseSection
-            initialProjectEntries={projectEntries}
-            initialProjectDocuments={projectDocuments}
-            initialHierarchicalEntries={hierarchicalEntries}
-            projectId={projectId}
-            organizationId={project.organizationId}
-            canEdit={canEdit}
-          />
+          <section>
+            <ProjectKnowledgeBaseSection
+              initialProjectEntries={projectEntries}
+              initialProjectDocuments={projectDocuments}
+              initialHierarchicalEntries={hierarchicalEntries}
+              projectId={projectId}
+              organizationId={project.organizationId}
+              canEdit={canEdit}
+            />
+          </section>
         </div>
       </div>
     </div>
   );
 }
 
-/**
- * Renders a compact skeleton placeholder used while the project templates section is loading.
- *
- * @returns A JSX element containing two pulsing placeholder blocks that indicate loading state.
- */
 function TemplateLoadingSkeleton() {
   return (
-    <div className="space-y-4">
-      <div className="h-10 bg-muted rounded animate-pulse" />
-      <div className="h-32 bg-muted rounded animate-pulse" />
+    <div className="space-y-3">
+      <div className="h-4 w-3/4 bg-muted rounded animate-pulse" />
+      <div className="h-24 bg-muted rounded-lg animate-pulse" />
+      <div className="flex gap-2">
+        <div className="h-9 w-28 bg-muted rounded animate-pulse" />
+      </div>
     </div>
   );
 }
 
-/**
- * Renders the project settings page wrapped in a Suspense boundary with a skeleton fallback.
- *
- * @param params - Route parameters object containing `projectId`
- * @returns A React element that displays the project settings UI; shows a pulsating skeleton while the settings content loads
- */
+function SettingsPageSkeleton() {
+  return (
+    <div className="container mx-auto py-6 px-4 sm:py-10 sm:px-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <div className="h-4 w-24 bg-muted rounded animate-pulse mb-4" />
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 bg-muted rounded-lg animate-pulse" />
+            <div className="space-y-2">
+              <div className="h-6 w-48 bg-muted rounded animate-pulse" />
+              <div className="h-4 w-20 bg-muted rounded animate-pulse" />
+            </div>
+          </div>
+        </div>
+        <div className="space-y-8">
+          <div className="h-64 bg-muted rounded-xl animate-pulse" />
+          <div className="h-48 bg-muted rounded-xl animate-pulse" />
+          <div className="h-72 bg-muted rounded-xl animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default async function ProjectSettingsPage({
   params,
 }: ProjectSettingsPageProps) {
   return (
-    <Suspense
-      fallback={
-        <div className="container mx-auto py-8 px-4">
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div className="h-12 bg-muted rounded animate-pulse" />
-            <div className="h-96 bg-muted rounded animate-pulse" />
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<SettingsPageSkeleton />}>
       <ProjectSettings params={params} />
     </Suspense>
   );
