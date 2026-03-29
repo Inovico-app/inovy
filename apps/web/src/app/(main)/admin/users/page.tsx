@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TeamMemberAssignment } from "@/features/admin/components/team/team-member-assignment";
 import { UserManagementTable } from "@/features/admin/components/user/user-management-table";
 import { resolveAuthContext } from "@/lib/auth-context";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+
+export const metadata: Metadata = {
+  title: "User Management",
+  description: "Manage organization users and team assignments",
+};
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { isOrganizationAdmin } from "@/lib/rbac/rbac";

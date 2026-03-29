@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -18,6 +19,27 @@ import {
   getCachedKnowledgeEntries,
 } from "@/server/cache/knowledge-base.cache";
 import { ProjectService } from "@/server/services/project.service";
+
+interface ProjectSettingsPageProps {
+  params: Promise<{ projectId: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: ProjectSettingsPageProps): Promise<Metadata> {
+  const { projectId } = await params;
+  const authResult = await resolveAuthContext("ProjectSettings.metadata");
+  if (authResult.isOk()) {
+    const project = await ProjectService.getProjectById(
+      projectId,
+      authResult.value,
+    );
+    if (project.isOk()) {
+      return { title: `${project.value.name} Settings` };
+    }
+  }
+  return { title: "Project Settings" };
+}
 import {
   ArrowLeftIcon,
   FileTextIcon,

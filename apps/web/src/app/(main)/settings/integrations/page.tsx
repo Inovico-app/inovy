@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
 import { MicrosoftConnection } from "@/features/integrations/microsoft/components/microsoft-connection";
+
+export const metadata: Metadata = {
+  title: "Integrations",
+  description: "Connect and manage Google and Microsoft integrations",
+};
 import { MicrosoftSettings } from "@/features/integrations/microsoft/components/microsoft-settings";
 import { MicrosoftStatusDashboard } from "@/features/integrations/microsoft/components/microsoft-status-dashboard";
 import { DriveWatchSettings } from "@/features/settings/components/drive-watch-settings";

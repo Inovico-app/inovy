@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamSettings } from "@/features/teams/components/team-settings";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
@@ -6,6 +7,7 @@ import {
   isOrganizationAdmin,
   isTeamManager,
 } from "@/lib/rbac/rbac";
+import { TeamQueries } from "@/server/data-access/teams.queries";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -13,6 +15,23 @@ interface TeamSettingsPageProps {
   params: Promise<{
     teamId: string;
   }>;
+}
+
+export async function generateMetadata({
+  params,
+}: TeamSettingsPageProps): Promise<Metadata> {
+  const { teamId } = await params;
+  const authResult = await getBetterAuthSession();
+  if (authResult.isOk() && authResult.value.organization) {
+    const team = await TeamQueries.selectTeamById(
+      teamId,
+      authResult.value.organization.id,
+    );
+    if (team) {
+      return { title: `${team.name} Settings` };
+    }
+  }
+  return { title: "Team Settings" };
 }
 
 async function TeamSettingsContainer({

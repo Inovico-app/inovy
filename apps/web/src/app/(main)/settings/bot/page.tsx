@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { PageHeader } from "@/components/page-header";
 import { BotSettingsContent } from "@/features/bot/components/bot-settings-content";
+
+export const metadata: Metadata = {
+  title: "Bot Settings",
+  description: "Configure your meeting bot preferences",
+};
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger, serializeError } from "@/lib/logger";
 import { Permissions } from "@/lib/rbac/permissions";

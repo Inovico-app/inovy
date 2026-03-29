@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   Card,
   CardContent,
@@ -8,6 +9,11 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { FeedbackTable } from "@/features/admin/components/feedback-table";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+
+export const metadata: Metadata = {
+  title: "Feedback",
+  description: "View and manage user feedback",
+};
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import { FeedbackQueries } from "@/server/data-access/feedback.queries";

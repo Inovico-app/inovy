@@ -6,7 +6,17 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { meetingId } = await params;
-  return { title: `Meeting Prep ${meetingId}` };
+  const authResult = await getBetterAuthSession();
+  if (authResult.isOk() && authResult.value.organization) {
+    const meeting = await MeetingsQueries.findById(
+      meetingId,
+      authResult.value.organization.id,
+    );
+    if (meeting) {
+      return { title: `Prep: ${meeting.title}` };
+    }
+  }
+  return { title: "Meeting Prep" };
 }
 import { getTranslations } from "next-intl/server";
 import { getBetterAuthSession } from "@/lib/better-auth-session";

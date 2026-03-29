@@ -7,7 +7,17 @@ export async function generateMetadata({
   params,
 }: ProjectDetailPageProps): Promise<Metadata> {
   const { projectId } = await params;
-  return { title: `Project ${projectId}` };
+  const authResult = await resolveAuthContext("ProjectDetail.metadata");
+  if (authResult.isOk()) {
+    const project = await ProjectService.getProjectById(
+      projectId,
+      authResult.value,
+    );
+    if (project.isOk()) {
+      return { title: project.value.name };
+    }
+  }
+  return { title: "Project" };
 }
 import { ProjectKnowledgeContextCard } from "@/features/knowledge-base/components/project-knowledge-context-card";
 import { ProjectActions } from "@/features/projects/components/project-actions";

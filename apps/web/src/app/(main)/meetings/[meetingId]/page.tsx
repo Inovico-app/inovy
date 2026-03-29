@@ -7,7 +7,17 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { meetingId } = await params;
-  return { title: `Meeting ${meetingId}` };
+  const authResult = await getBetterAuthSession();
+  if (authResult.isOk() && authResult.value.organization) {
+    const meeting = await MeetingsQueries.findById(
+      meetingId,
+      authResult.value.organization.id,
+    );
+    if (meeting) {
+      return { title: meeting.title };
+    }
+  }
+  return { title: "Meeting" };
 }
 import { MeetingAgendaItemsQueries } from "@/server/data-access/meeting-agenda-items.queries";
 import { MeetingNotesQueries } from "@/server/data-access/meeting-notes.queries";

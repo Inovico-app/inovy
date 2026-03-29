@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
+
+export const metadata: Metadata = {
+  title: "Settings",
+  description: "Manage your account and organization settings",
+};
 import { OverviewActionItems } from "@/features/settings/components/overview-action-items";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { getCachedKnowledgeDocuments } from "@/server/cache/knowledge-base.cache";
