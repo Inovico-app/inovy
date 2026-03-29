@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { resolveAuthContext } from "@/lib/auth-context";
 import { WorksCouncilQueries } from "@/server/data-access/works-council.queries";
-import { redirect } from "next/navigation";
+import { permissions } from "@/lib/permissions/engine";
+import { requirePermission } from "@/lib/permissions/require-permission";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { WorksCouncilDashboard } from "@/features/admin/components/compliance/works-council-dashboard";
@@ -12,12 +12,9 @@ export const metadata: Metadata = {
 };
 
 async function WorksCouncilContent() {
-  const authResult = await resolveAuthContext("WorksCouncilPage");
-  if (authResult.isErr()) {
-    redirect("/");
-  }
-
-  const { organizationId } = authResult.value;
+  const { organizationId } = await requirePermission(
+    permissions.can("admin:all"),
+  );
 
   const [activeApproval, approvals] = await Promise.all([
     WorksCouncilQueries.findActiveByOrganization(organizationId),

@@ -1,12 +1,12 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { resolveAuthContext } from "@/lib/auth-context";
 import {
   buildDpaContext,
   DPA_CONTACT_EMAIL,
 } from "@/features/admin/components/compliance/dpa/dpa-data";
 import { OrganizationQueries } from "@/server/data-access/organization.queries";
 import { DpaPreview } from "@/features/admin/components/compliance/dpa/dpa-preview";
-import { redirect } from "next/navigation";
+import { permissions } from "@/lib/permissions/engine";
+import { requirePermission } from "@/lib/permissions/require-permission";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 
@@ -16,12 +16,9 @@ export const metadata: Metadata = {
 };
 
 async function DpaContent() {
-  const authResult = await resolveAuthContext("DpaPage");
-  if (authResult.isErr()) {
-    redirect("/");
-  }
-
-  const { organizationId } = authResult.value;
+  const { organizationId } = await requirePermission(
+    permissions.can("admin:all"),
+  );
   const org = await OrganizationQueries.findByIdDirect(organizationId);
   const orgName = org?.name ?? "Organisatie";
   const context = buildDpaContext(orgName, DPA_CONTACT_EMAIL);

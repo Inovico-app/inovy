@@ -5,10 +5,10 @@ import { PasteMeetingLink } from "@/features/meetings/components/paste-meeting-l
 
 export const metadata: Metadata = { title: "Meetings" };
 import { CalendarConnectionPrompt } from "@/features/meetings/components/calendar-connection-prompt";
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { permissions } from "@/lib/permissions/engine";
+import { requirePermission } from "@/lib/permissions/require-permission";
 import { getConnectedProviders } from "@/server/services/calendar/calendar-provider-factory";
 import { getTranslations } from "next-intl/server";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 async function MeetingsContent({
@@ -21,18 +21,7 @@ async function MeetingsContent({
     botStatus?: string;
   }>;
 }) {
-  const authResult = await getBetterAuthSession();
-
-  if (authResult.isErr() || !authResult.value.isAuthenticated) {
-    redirect("/sign-in");
-  }
-
-  const { user, organization } = authResult.value;
-
-  if (!user || !organization) {
-    redirect("/sign-in");
-  }
-
+  const { user } = await requirePermission(permissions.hasRole("viewer"));
   const t = await getTranslations("meetings");
 
   // Check if any calendar provider (Google or Microsoft) is connected

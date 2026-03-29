@@ -1,11 +1,14 @@
 import { NotificationsListServer } from "@/features/notifications/components/notifications-list-server";
 import type { Metadata } from "next";
+import { permissions } from "@/lib/permissions/engine";
+import { requirePermission } from "@/lib/permissions/require-permission";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 export const metadata: Metadata = { title: "Notifications" };
 
 export default async function NotificationsPage() {
+  await requirePermission(permissions.hasRole("viewer"));
   const t = await getTranslations("notifications");
 
   return (

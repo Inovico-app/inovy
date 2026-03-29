@@ -19,9 +19,9 @@ export async function generateMetadata({
   return { title: "Team" };
 }
 import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { canAccessTeam } from "@/lib/rbac/rbac";
+import { requirePermission } from "@/lib/permissions/require-permission";
+import { canAccessTeam } from "@/lib/permissions/presets";
 import { TeamQueries } from "@/server/data-access/teams.queries";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 interface TeamPageProps {
@@ -36,28 +36,8 @@ async function TeamDashboardContainer({
   params: Promise<{ teamId: string }>;
 }) {
   const { teamId } = await params;
-  const authResult = await getBetterAuthSession();
 
-  if (
-    authResult.isErr() ||
-    !authResult.value.isAuthenticated ||
-    !authResult.value.organization
-  ) {
-    redirect("/");
-  }
-
-  const { user, member } = authResult.value;
-
-  // user is guaranteed to be non-null after authentication check
-  if (!user) {
-    redirect("/");
-  }
-
-  // Check if user can access this team
-  const hasAccess = await canAccessTeam(user, teamId, member);
-  if (!hasAccess) {
-    redirect("/");
-  }
+  await requirePermission(canAccessTeam, { teamId });
 
   return <TeamDashboard teamId={teamId} />;
 }

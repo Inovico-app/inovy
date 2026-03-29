@@ -3,10 +3,10 @@ import { BotSessionsList } from "@/features/bot/components/bot-sessions-list";
 
 export const metadata: Metadata = { title: "Bot Sessions" };
 import { BotSessionsTabs } from "@/features/bot/components/bot-sessions-tabs";
-import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { permissions } from "@/lib/permissions/engine";
+import { requirePermission } from "@/lib/permissions/require-permission";
 import { getCachedBotSessions } from "@/server/cache/bot-sessions.cache";
 import type { BotStatus } from "@/server/db/schema/bot-sessions";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 const ACTIVE_STATUSES: BotStatus[] = [
@@ -27,17 +27,8 @@ async function BotSessionsContent({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
-  const authResult = await getBetterAuthSession();
-
-  if (authResult.isErr() || !authResult.value.isAuthenticated) {
-    redirect("/sign-in");
-  }
-
-  const { organization } = authResult.value;
-
-  if (!organization) {
-    redirect("/sign-in");
-  }
+  const session = await requirePermission(permissions.hasRole("viewer"));
+  const { organizationId } = session;
 
   const { tab = "active" } = await searchParams;
   const statusFilter = getStatusFilter(tab);
@@ -49,19 +40,19 @@ async function BotSessionsContent({
     failedSessions,
     currentTabSessions,
   ] = await Promise.all([
-    getCachedBotSessions(organization.id, {
+    getCachedBotSessions(organizationId, {
       status: ACTIVE_STATUSES,
       limit: 1, // Only need count
     }),
-    getCachedBotSessions(organization.id, {
+    getCachedBotSessions(organizationId, {
       status: "completed",
       limit: 1, // Only need count
     }),
-    getCachedBotSessions(organization.id, {
+    getCachedBotSessions(organizationId, {
       status: "failed",
       limit: 1, // Only need count
     }),
-    getCachedBotSessions(organization.id, {
+    getCachedBotSessions(organizationId, {
       status: statusFilter,
       limit: 20,
     }),

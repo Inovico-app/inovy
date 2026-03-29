@@ -14,11 +14,11 @@ import { OrganizationKnowledgeBaseSection } from "@/features/knowledge-base/comp
 import { getOrganizationSettings } from "@/features/settings/actions/organization-settings";
 import { OrganizationInstructionsSection } from "@/features/settings/components/organization-instructions-section";
 import { OrganizationTabs } from "@/features/settings/components/organization-tabs";
-import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { formatDateShort } from "@/lib/formatters/date-formatters";
 import { getUserDisplayName } from "@/lib/formatters/display-formatters";
 import { logger } from "@/lib/logger";
-import { isOrganizationAdmin } from "@/lib/rbac/rbac";
+import { isAdmin } from "@/lib/permissions/presets";
+import { requirePermission } from "@/lib/permissions/require-permission";
 import {
   getCachedKnowledgeDocuments,
   getCachedKnowledgeEntries,
@@ -31,34 +31,9 @@ import { Suspense } from "react";
 
 async function OrganizationContent() {
   const t = await getTranslations("settings.organization");
-  const authResult = await getBetterAuthSession();
+  const { organizationId } = await requirePermission(isAdmin);
 
-  if (authResult.isErr()) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-destructive">
-          Failed to load organization information
-        </p>
-      </div>
-    );
-  }
-
-  const auth = authResult.value;
-  const organization = auth.organization;
-
-  if (!organization) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">{t("noOrganizationData")}</p>
-      </div>
-    );
-  }
-
-  const organizationId = organization.id;
-  const orgName = organization.name ?? "Organization";
-  const canEdit = auth.user
-    ? isOrganizationAdmin(auth.user, auth.member)
-    : false;
+  const canEdit = true;
 
   // Parallel data fetching
   const [
@@ -114,6 +89,7 @@ async function OrganizationContent() {
     settingsResult && settingsResult.data?.instructions
       ? settingsResult.data.instructions
       : "";
+  const orgName = orgRecord?.name ?? "Organization";
 
   // Tab content: General
   const generalContent = (

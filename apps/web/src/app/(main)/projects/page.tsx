@@ -13,6 +13,8 @@ import { logger } from "@/lib/logger";
 import type { AllowedStatus } from "@/server/data-access/projects.queries";
 import type { ProjectWithRecordingCountDto } from "@/server/dto/project.dto";
 import { resolveAuthContext } from "@/lib/auth-context";
+import { permissions } from "@/lib/permissions/engine";
+import { requirePermission } from "@/lib/permissions/require-permission";
 import { getCachedProjectsWithRecordingCount } from "@/server/cache/project.cache";
 import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
 import {
@@ -241,7 +243,10 @@ interface ProjectsPageProps {
   searchParams: Promise<{ search?: string; status?: string; team?: string }>;
 }
 
-export default function ProjectsPage({ searchParams }: ProjectsPageProps) {
+export default async function ProjectsPage({
+  searchParams,
+}: ProjectsPageProps) {
+  await requirePermission(permissions.hasRole("viewer"));
   // CACHE COMPONENTS: Wrap dynamic content in Suspense to enable static shell generation
   // ProjectsList accesses auth data to get projects, making it dynamic
   return (

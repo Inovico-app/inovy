@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { CreateProjectForm } from "@/features/projects/components/create-project-form";
+import { permissions } from "@/lib/permissions/engine";
+import { requirePermission } from "@/lib/permissions/require-permission";
 import { Suspense } from "react";
 
 export const metadata: Metadata = { title: "Create Project" };
 
-export default function CreateProjectPage() {
+export default async function CreateProjectPage() {
+  await requirePermission(permissions.can("project:create"));
   // CACHE COMPONENTS: Wrap form in Suspense for static shell generation
   // Forms are typically dynamic but can benefit from a static shell
   return (
@@ -24,4 +27,3 @@ export default function CreateProjectPage() {
     </Suspense>
   );
 }
-

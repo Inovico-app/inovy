@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamsList } from "@/features/teams/components/teams-list";
+import { permissions } from "@/lib/permissions/engine";
+import { requirePermission } from "@/lib/permissions/require-permission";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
@@ -9,6 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function TeamsPage() {
+  await requirePermission(permissions.hasRole("viewer"));
   const t = await getTranslations("teams");
 
   return (
