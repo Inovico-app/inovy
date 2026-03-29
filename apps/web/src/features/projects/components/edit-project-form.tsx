@@ -1,14 +1,13 @@
 "use client";
 
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Form } from "@/components/ui/form";
+import { FieldInput } from "@/components/ui/form-fields";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useProjectTeamPicker } from "@/features/projects/hooks/use-project-team-picker";
@@ -21,7 +20,7 @@ import {
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Loader2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -90,89 +89,94 @@ export function EditProjectForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                {t("projectName")} <span className="text-red-500">*</span>
-              </FormLabel>
-              <FormControl>
-                <Input
-                  placeholder={t("projectNamePlaceholder")}
-                  disabled={isExecuting}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <form onSubmit={form.handleSubmit(handleSubmit)}>
+        <FieldGroup>
+          <Controller
+            control={form.control}
+            name="name"
+            render={({ field, fieldState }) => (
+              <FieldInput
+                label={
+                  <>
+                    {t("projectName")} <span className="text-red-500">*</span>
+                  </>
+                }
+                field={field}
+                fieldState={fieldState}
+                placeholder={t("projectNamePlaceholder")}
+                disabled={isExecuting}
+              />
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t("description")}</FormLabel>
-              <FormControl>
+          <Controller
+            control={form.control}
+            name="description"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={!!fieldState.error || undefined}>
+                <FieldLabel htmlFor={field.name}>{t("description")}</FieldLabel>
                 <Textarea
+                  id={field.name}
+                  aria-invalid={!!fieldState.error || undefined}
                   placeholder={t("descriptionPlaceholder")}
                   disabled={isExecuting}
                   rows={3}
                   maxLength={PROJECT_DESCRIPTION_MAX_LENGTH}
                   {...field}
+                  value={field.value ?? ""}
                 />
-              </FormControl>
-              <p
-                className={`text-right text-xs ${descriptionCounterColor}`}
-                aria-live="polite"
-              >
-                {descriptionLength} / {PROJECT_DESCRIPTION_MAX_LENGTH}
-              </p>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {!isLoadingTeams && teams.length > 0 && (
-          <FormField
-            control={form.control}
-            name="teamId"
-            render={() => (
-              <FormItem>
-                <TeamPicker
-                  teams={teams}
-                  value={teamIdValue}
-                  onChange={(id) => form.setValue("teamId", id)}
-                />
-                <FormMessage />
-              </FormItem>
+                <p
+                  className={`text-right text-xs ${descriptionCounterColor}`}
+                  aria-live="polite"
+                >
+                  {descriptionLength} / {PROJECT_DESCRIPTION_MAX_LENGTH}
+                </p>
+                {fieldState.error && (
+                  <FieldError>{fieldState.error.message}</FieldError>
+                )}
+              </Field>
             )}
           />
-        )}
 
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onSuccess}
-            disabled={isExecuting}
-          >
-            {tc("cancel")}
-          </Button>
-          <Button
-            type="submit"
-            disabled={isExecuting || !form.formState.isValid}
-          >
-            {isExecuting && (
-              <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
-            )}
-            {t("saveChanges")}
-          </Button>
-        </div>
+          {!isLoadingTeams && teams.length > 0 && (
+            <Controller
+              control={form.control}
+              name="teamId"
+              render={({ field: _field, fieldState }) => (
+                <Field data-invalid={!!fieldState.error || undefined}>
+                  <TeamPicker
+                    teams={teams}
+                    value={teamIdValue}
+                    onChange={(id) => form.setValue("teamId", id)}
+                  />
+                  {fieldState.error && (
+                    <FieldError>{fieldState.error.message}</FieldError>
+                  )}
+                </Field>
+              )}
+            />
+          )}
+
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onSuccess}
+              disabled={isExecuting}
+            >
+              {tc("cancel")}
+            </Button>
+            <Button
+              type="submit"
+              disabled={isExecuting || !form.formState.isValid}
+            >
+              {isExecuting && (
+                <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              {t("saveChanges")}
+            </Button>
+          </div>
+        </FieldGroup>
       </form>
     </Form>
   );

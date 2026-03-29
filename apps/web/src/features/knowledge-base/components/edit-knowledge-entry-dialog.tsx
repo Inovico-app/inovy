@@ -9,15 +9,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FieldGroup } from "@/components/ui/field";
+import { Form } from "@/components/ui/form";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+  FieldInput,
+  FieldSelect,
+  FieldSwitch,
+  FieldTextarea,
+} from "@/components/ui/form-fields";
 import {
   Select,
   SelectContent,
@@ -25,8 +24,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import {
   CATEGORY_CONFIG,
   VOCABULARY_CATEGORIES,
@@ -36,7 +33,7 @@ import type { KnowledgeEntryDto } from "@/server/dto/knowledge-base.dto";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { updateKnowledgeEntryAction } from "../actions/update-entry";
 import {
@@ -149,145 +146,137 @@ export function EditKnowledgeEntryDialog({
           <DialogDescription>Update the term and definition</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="term"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Term *</FormLabel>
-                  <FormControl>
-                    <Input {...field} maxLength={100} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="definition"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Definition *</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} rows={4} maxLength={5000} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="context"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Context (optional)</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} rows={2} maxLength={1000} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="examples"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Examples (optional, one per line)</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} rows={3} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <FieldGroup>
+              <Controller
                 control={form.control}
-                name="boost"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Transcription Boost (optional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={2}
-                        step={0.1}
-                        placeholder="Default (no boost)"
-                        disabled={isUpdating}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                name="term"
+                render={({ field, fieldState }) => (
+                  <FieldInput
+                    label="Term *"
+                    field={field}
+                    fieldState={fieldState}
+                    maxLength={100}
+                  />
                 )}
               />
 
-              <FormField
+              <Controller
                 control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
+                name="definition"
+                render={({ field, fieldState }) => (
+                  <FieldTextarea
+                    label="Definition *"
+                    field={field}
+                    fieldState={fieldState}
+                    rows={4}
+                    maxLength={5000}
+                  />
+                )}
+              />
+
+              <Controller
+                control={form.control}
+                name="context"
+                render={({ field, fieldState }) => (
+                  <FieldTextarea
+                    label="Context (optional)"
+                    field={field}
+                    fieldState={fieldState}
+                    rows={2}
+                    maxLength={1000}
+                  />
+                )}
+              />
+
+              <Controller
+                control={form.control}
+                name="examples"
+                render={({ field, fieldState }) => (
+                  <FieldTextarea
+                    label="Examples (optional, one per line)"
+                    field={field}
+                    fieldState={fieldState}
+                    rows={3}
+                  />
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <Controller
+                  control={form.control}
+                  name="boost"
+                  render={({ field, fieldState }) => (
+                    <FieldInput
+                      label="Transcription Boost (optional)"
+                      field={field}
+                      fieldState={fieldState}
+                      type="number"
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      placeholder="Default (no boost)"
                       disabled={isUpdating}
+                    />
+                  )}
+                />
+
+                <Controller
+                  control={form.control}
+                  name="category"
+                  render={({ field, fieldState }) => (
+                    <FieldSelect
+                      label="Category"
+                      field={field}
+                      fieldState={fieldState}
                     >
-                      <FormControl>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={isUpdating}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {VOCABULARY_CATEGORIES.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {CATEGORY_CONFIG[cat].label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+                        <SelectContent>
+                          {VOCABULARY_CATEGORIES.map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {CATEGORY_CONFIG[cat].label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FieldSelect>
+                  )}
+                />
+              </div>
+
+              <Controller
+                control={form.control}
+                name="isActive"
+                render={({ field, fieldState }) => (
+                  <FieldSwitch
+                    label="Active"
+                    field={field}
+                    fieldState={fieldState}
+                  />
                 )}
               />
-            </div>
 
-            <FormField
-              control={form.control}
-              name="isActive"
-              render={({ field }) => (
-                <FormItem className="flex items-center space-x-2">
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormLabel>Active</FormLabel>
-                </FormItem>
-              )}
-            />
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isUpdating}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isUpdating}>
-                {isUpdating ? "Updating..." : "Update Entry"}
-              </Button>
-            </DialogFooter>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isUpdating}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isUpdating}>
+                  {isUpdating ? "Updating..." : "Update Entry"}
+                </Button>
+              </DialogFooter>
+            </FieldGroup>
           </form>
         </Form>
       </DialogContent>

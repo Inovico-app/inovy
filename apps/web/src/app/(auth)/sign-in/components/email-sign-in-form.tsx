@@ -3,19 +3,19 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Form } from "@/components/ui/form";
+import { FieldInput } from "@/components/ui/form-fields";
 import { Input } from "@/components/ui/input";
 import { signInEmailSchema } from "@/features/auth/validation/auth.schema";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { AlertCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import type { z } from "zod";
 
@@ -72,95 +72,97 @@ export function EmailSignInForm({
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
       <Form {...emailForm}>
-        <form onSubmit={emailForm.handleSubmit(onSubmit)} className="space-y-4">
-          <fieldset className="space-y-4" disabled={isLoading}>
-            <legend className="sr-only">{t("emailSignInLegend")}</legend>
+        <form onSubmit={emailForm.handleSubmit(onSubmit)}>
+          <fieldset disabled={isLoading}>
+            <FieldGroup>
+              <legend className="sr-only">{t("emailSignInLegend")}</legend>
 
-            {signInError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>{t("errorTitle")}</AlertTitle>
-                <AlertDescription>{signInError}</AlertDescription>
-              </Alert>
-            )}
-
-            {passwordResetError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>{t("errorTitle")}</AlertTitle>
-                <AlertDescription>{passwordResetError}</AlertDescription>
-              </Alert>
-            )}
-
-            <FormField
-              control={emailForm.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("emailLabel")}</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder={t("emailPlaceholder")}
-                      autoComplete="email"
-                      disabled={isLoading}
-                      autoFocus
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              {signInError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>{t("errorTitle")}</AlertTitle>
+                  <AlertDescription>{signInError}</AlertDescription>
+                </Alert>
               )}
-            />
 
-            <FormField
-              control={emailForm.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center justify-between">
-                    <FormLabel>{t("passwordLabel")}</FormLabel>
-                    <button
-                      type="button"
-                      onClick={handlePasswordReset}
-                      className="text-xs text-primary hover:underline"
-                      disabled={isLoading}
-                    >
-                      {t("forgotPassword")}
-                    </button>
-                  </div>
-                  <FormControl>
+              {passwordResetError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>{t("errorTitle")}</AlertTitle>
+                  <AlertDescription>{passwordResetError}</AlertDescription>
+                </Alert>
+              )}
+
+              <Controller
+                control={emailForm.control}
+                name="email"
+                render={({ field, fieldState }) => (
+                  <FieldInput
+                    label={t("emailLabel")}
+                    field={field}
+                    fieldState={fieldState}
+                    type="email"
+                    placeholder={t("emailPlaceholder")}
+                    autoComplete="email"
+                    disabled={isLoading}
+                    autoFocus
+                  />
+                )}
+              />
+
+              <Controller
+                control={emailForm.control}
+                name="password"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={!!fieldState.error || undefined}>
+                    <div className="flex items-center justify-between">
+                      <FieldLabel htmlFor={field.name}>
+                        {t("passwordLabel")}
+                      </FieldLabel>
+                      <button
+                        type="button"
+                        onClick={handlePasswordReset}
+                        className="text-xs text-primary hover:underline"
+                        disabled={isLoading}
+                      >
+                        {t("forgotPassword")}
+                      </button>
+                    </div>
                     <Input
+                      id={field.name}
+                      aria-invalid={!!fieldState.error || undefined}
                       type="password"
                       placeholder="••••••••"
                       autoComplete="current-password"
                       disabled={isLoading}
                       {...field}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    {fieldState.error && (
+                      <FieldError>{fieldState.error.message}</FieldError>
+                    )}
+                  </Field>
+                )}
+              />
 
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={handleCancel}
-                disabled={isLoading}
-                className="flex-1"
-              >
-                {t("cancel")}
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1"
-                disabled={isLoading || isSigningIn}
-              >
-                {t("signIn")}
-              </Button>
-            </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleCancel}
+                  disabled={isLoading}
+                  className="flex-1"
+                >
+                  {t("cancel")}
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={isLoading || isSigningIn}
+                >
+                  {t("signIn")}
+                </Button>
+              </div>
+            </FieldGroup>
           </fieldset>
         </form>
       </Form>

@@ -9,14 +9,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Form } from "@/components/ui/form";
+import { FieldSelect } from "@/components/ui/form-fields";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -41,7 +41,7 @@ import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2, X } from "lucide-react";
 import { useMemo } from "react";
 import { useAction } from "next-safe-action/hooks";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 interface Project {
@@ -236,92 +236,94 @@ export function DriveWatchForm({
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-4"
-          >
-            <FormField
-              control={form.control}
-              name="folderId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Google Drive Folder ID{" "}
-                    {!editingWatch && (
-                      <span className="text-destructive">*</span>
-                    )}
-                  </FormLabel>
-                  <FormControl>
+          <form onSubmit={form.handleSubmit(handleSubmit)}>
+            <FieldGroup>
+              <Controller
+                control={form.control}
+                name="folderId"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={!!fieldState.error || undefined}>
+                    <FieldLabel htmlFor={field.name}>
+                      Google Drive Folder ID{" "}
+                      {!editingWatch && (
+                        <span className="text-destructive">*</span>
+                      )}
+                    </FieldLabel>
                     <Input
+                      id={field.name}
+                      aria-invalid={!!fieldState.error || undefined}
                       {...field}
                       type="text"
                       placeholder="Enter folder ID (e.g., 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms)"
                       disabled={!!editingWatch || isLoading}
                     />
-                  </FormControl>
-                  <FormDescription>
-                    You can find the folder ID in the Google Drive URL. The
-                    folder ID is the long string of characters after{" "}
-                    <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                      /folders/
-                    </code>
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FieldDescription>
+                      You can find the folder ID in the Google Drive URL. The
+                      folder ID is the long string of characters after{" "}
+                      <code className="text-xs bg-muted px-1 py-0.5 rounded">
+                        /folders/
+                      </code>
+                    </FieldDescription>
+                    {fieldState.error && (
+                      <FieldError>{fieldState.error.message}</FieldError>
+                    )}
+                  </Field>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="projectId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Project <span className="text-destructive">*</span>
-                  </FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    disabled={isLoading}
-                    items={projectItems}
+              <Controller
+                control={form.control}
+                name="projectId"
+                render={({ field, fieldState }) => (
+                  <FieldSelect
+                    label={
+                      <>
+                        Project <span className="text-destructive">*</span>
+                      </>
+                    }
+                    description="Files uploaded to this folder will be linked to the selected project"
+                    field={field}
+                    fieldState={fieldState}
                   >
-                    <FormControl>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={isLoading}
+                      items={projectItems}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select a project" />
                       </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {projects.length === 0 ? (
-                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                          No projects available
-                        </div>
-                      ) : (
-                        projects.map((project) => (
-                          <SelectItem key={project.id} value={project.id}>
-                            {project.name}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Files uploaded to this folder will be linked to the selected
-                    project
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                      <SelectContent>
+                        {projects.length === 0 ? (
+                          <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                            No projects available
+                          </div>
+                        ) : (
+                          projects.map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </FieldSelect>
+                )}
+              />
 
-            <div className="flex items-center gap-2">
-              <Button type="submit" disabled={isLoading}>
-                {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                {editingWatch ? "Update Watch" : "Start Watching"}
-              </Button>
-              <Button type="button" variant="outline" onClick={onCancel}>
-                Cancel
-              </Button>
-            </div>
+              <div className="flex items-center gap-2">
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading && (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  )}
+                  {editingWatch ? "Update Watch" : "Start Watching"}
+                </Button>
+                <Button type="button" variant="outline" onClick={onCancel}>
+                  Cancel
+                </Button>
+              </div>
+            </FieldGroup>
           </form>
         </Form>
       </CardContent>

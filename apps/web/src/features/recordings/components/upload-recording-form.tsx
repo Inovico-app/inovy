@@ -1,16 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Form } from "@/components/ui/form";
+import { FieldInput, FieldTextarea } from "@/components/ui/form-fields";
 import { uploadRecordingToBlob } from "@/lib/vercel-blob";
 import {
   ALLOWED_MIME_TYPES,
@@ -20,7 +13,7 @@ import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, type ChangeEvent, type DragEvent } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useUploadState } from "../hooks/use-upload-state";
 import {
@@ -232,120 +225,112 @@ export function UploadRecordingForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-6 min-w-0 overflow-hidden"
+        className="min-w-0 overflow-hidden"
       >
-        {/* File Upload Area */}
-        <div className="space-y-2 min-w-0 overflow-hidden">
-          <FormLabel htmlFor="file">{t("upload.recordingFile")}</FormLabel>
-          <FileDropZone
-            file={state.file}
-            isDragging={state.isDragging}
-            isUploading={state.isUploading}
-            fileInputRef={fileInputRef}
-            onDragEnter={handleDragEnter}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onFileInputChange={handleFileInputChange}
-            onRemoveFile={handleRemoveFile}
+        <FieldGroup>
+          {/* File Upload Area */}
+          <Field>
+            <FieldLabel htmlFor="file">{t("upload.recordingFile")}</FieldLabel>
+            <div className="min-w-0 overflow-hidden">
+              <FileDropZone
+                file={state.file}
+                isDragging={state.isDragging}
+                isUploading={state.isUploading}
+                fileInputRef={fileInputRef}
+                onDragEnter={handleDragEnter}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onFileInputChange={handleFileInputChange}
+                onRemoveFile={handleRemoveFile}
+              />
+            </div>
+          </Field>
+
+          {/* Upload Progress */}
+          {state.isUploading && (
+            <UploadProgressBar progress={state.uploadProgress} />
+          )}
+
+          {/* Title Field */}
+          <Controller
+            control={form.control}
+            name="title"
+            render={({ field, fieldState }) => (
+              <FieldInput
+                label={t("upload.titleField")}
+                field={field}
+                fieldState={fieldState}
+                placeholder={t("upload.titlePlaceholder")}
+                maxLength={200}
+                disabled={state.isUploading}
+              />
+            )}
           />
-        </div>
 
-        {/* Upload Progress */}
-        {state.isUploading && (
-          <UploadProgressBar progress={state.uploadProgress} />
-        )}
+          {/* Description Field */}
+          <Controller
+            control={form.control}
+            name="description"
+            render={({ field, fieldState }) => (
+              <FieldTextarea
+                label={t("upload.descriptionField")}
+                field={field}
+                fieldState={fieldState}
+                placeholder={t("upload.descriptionPlaceholder")}
+                maxLength={1000}
+                disabled={state.isUploading}
+                rows={4}
+              />
+            )}
+          />
 
-        {/* Title Field */}
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t("upload.titleField")}</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  placeholder={t("upload.titlePlaceholder")}
-                  maxLength={200}
-                  disabled={state.isUploading}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+          {/* Recording Date */}
+          <Controller
+            control={form.control}
+            name="recordingDate"
+            render={({ field, fieldState }) => (
+              <FieldInput
+                label={t("upload.recordingDateField")}
+                field={field}
+                fieldState={fieldState}
+                type="date"
+                disabled={state.isUploading}
+                max={new Date().toISOString().split("T")[0]}
+              />
+            )}
+          />
+
+          {/* Error Message */}
+          {state.error && (
+            <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+              {state.error}
+            </div>
           )}
-        />
 
-        {/* Description Field */}
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t("upload.descriptionField")}</FormLabel>
-              <FormControl>
-                <Textarea
-                  {...field}
-                  placeholder={t("upload.descriptionPlaceholder")}
-                  maxLength={1000}
-                  disabled={state.isUploading}
-                  rows={4}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Recording Date */}
-        <FormField
-          control={form.control}
-          name="recordingDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t("upload.recordingDateField")}</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  type="date"
-                  disabled={state.isUploading}
-                  max={new Date().toISOString().split("T")[0]}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Error Message */}
-        {state.error && (
-          <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-            {state.error}
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex gap-3 justify-end">
-          {onCancel && (
+          {/* Action Buttons */}
+          <div className="flex gap-3 justify-end">
+            {onCancel && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancelUpload}
+              >
+                {state.isUploading ? t("upload.cancelUpload") : tc("cancel")}
+              </Button>
+            )}
             <Button
-              type="button"
-              variant="outline"
-              onClick={handleCancelUpload}
+              type="submit"
+              disabled={
+                !state.file || !form.formState.isValid || state.isUploading
+              }
             >
-              {state.isUploading ? t("upload.cancelUpload") : tc("cancel")}
+              {state.isUploading
+                ? t("upload.uploading")
+                : t("upload.uploadButton")}
             </Button>
-          )}
-          <Button
-            type="submit"
-            disabled={
-              !state.file || !form.formState.isValid || state.isUploading
-            }
-          >
-            {state.isUploading
-              ? t("upload.uploading")
-              : t("upload.uploadButton")}
-          </Button>
-        </div>
+          </div>
+        </FieldGroup>
       </form>
     </Form>
   );

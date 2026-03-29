@@ -9,20 +9,20 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Form } from "@/components/ui/form";
+import { FieldInput } from "@/components/ui/form-fields";
 import { Input } from "@/components/ui/input";
 import type { OrganizationDetailDto } from "@/server/cache/organization.cache";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2Icon, SaveIcon } from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -119,33 +119,34 @@ export function OrganizationEditForm({
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("organizationName")}</FormLabel>
-                  <FormControl>
-                    <Input placeholder="My Organization" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    The display name for the organization
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <FieldGroup>
+              <Controller
+                control={form.control}
+                name="name"
+                render={({ field, fieldState }) => (
+                  <FieldInput
+                    label={t("organizationName")}
+                    description="The display name for the organization"
+                    field={field}
+                    fieldState={fieldState}
+                    placeholder="My Organization"
+                  />
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="slug"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("slugLabel")}</FormLabel>
-                  <FormControl>
+              <Controller
+                control={form.control}
+                name="slug"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={!!fieldState.error || undefined}>
+                    <FieldLabel htmlFor={field.name}>
+                      {t("slugLabel")}
+                    </FieldLabel>
                     <div className="relative">
                       <Input
+                        id={field.name}
+                        aria-invalid={!!fieldState.error || undefined}
                         placeholder="my-org"
                         {...field}
                         onBlur={() => {
@@ -159,48 +160,44 @@ export function OrganizationEditForm({
                         </div>
                       )}
                     </div>
-                  </FormControl>
-                  <FormDescription>
-                    A unique identifier for the organization (lowercase,
-                    numbers, and hyphens only)
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FieldDescription>
+                      A unique identifier for the organization (lowercase,
+                      numbers, and hyphens only)
+                    </FieldDescription>
+                    {fieldState.error && (
+                      <FieldError>{fieldState.error.message}</FieldError>
+                    )}
+                  </Field>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="logo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("logoUrl")}</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="https://example.com/logo.png"
-                      type="url"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    A URL to the organization's logo image
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <Controller
+                control={form.control}
+                name="logo"
+                render={({ field, fieldState }) => (
+                  <FieldInput
+                    label={t("logoUrl")}
+                    description="A URL to the organization's logo image"
+                    field={field}
+                    fieldState={fieldState}
+                    placeholder="https://example.com/logo.png"
+                    type="url"
+                  />
+                )}
+              />
 
-            <Button
-              type="submit"
-              disabled={form.formState.isSubmitting || isCheckingSlug}
-            >
-              {form.formState.isSubmitting ? (
-                <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <SaveIcon className="mr-2 h-4 w-4" />
-              )}
-              Save Changes
-            </Button>
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting || isCheckingSlug}
+              >
+                {form.formState.isSubmitting ? (
+                  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <SaveIcon className="mr-2 h-4 w-4" />
+                )}
+                Save Changes
+              </Button>
+            </FieldGroup>
           </form>
         </Form>
       </CardContent>
