@@ -709,18 +709,22 @@ export const auth = betterAuth({
     twoFactor({
       issuer: "Inovy",
     }),
-    stripePlugin({
-      stripeClient: getStripeClient(),
-      stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
-      createCustomerOnSignUp: false,
-      subscription: {
-        enabled: true,
-        plans: [],
-      },
-      organization: {
-        enabled: true,
-      },
-    }),
+    ...(process.env.STRIPE_SECRET_KEY
+      ? [
+          stripePlugin({
+            stripeClient: getStripeClient(),
+            stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
+            createCustomerOnSignUp: false,
+            subscription: {
+              enabled: true,
+              plans: [],
+            },
+            organization: {
+              enabled: true,
+            },
+          }),
+        ]
+      : []),
     nextCookies(), // Must be last plugin
   ],
 });
