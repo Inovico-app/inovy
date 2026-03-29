@@ -3,10 +3,10 @@ import { AcceptInvitation } from "@/features/auth/components/accept-invitation";
 import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
 
-export async function generateMetadata({ params }: AcceptInvitationPageProps): Promise<Metadata> {
-  const { id } = await params;
-  return { title: `Accept Invitation ${id}` };
-}
+export const metadata: Metadata = {
+  title: "Accept Invitation",
+  description: "Accept your organization invitation",
+};
 
 interface AcceptInvitationPageProps {
   params: Promise<{ id: string }>;
@@ -47,4 +47,3 @@ export default async function AcceptInvitationPage({
     </Suspense>
   );
 }
-

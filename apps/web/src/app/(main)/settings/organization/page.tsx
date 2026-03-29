@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
+
+export const metadata: Metadata = {
+  title: "Organization Settings",
+  description: "Manage your organization, members, and knowledge base",
+};
 import { InviteUserDialog } from "@/features/admin/components/organization/invite-user-dialog";
 import { OrganizationDangerZone } from "@/features/admin/components/organization/organization-danger-zone";
 import { TeamManagement } from "@/features/admin/components/team/team-management";

@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
+
+export const metadata: Metadata = {
+  title: "Profile",
+  description: "Manage your personal profile and privacy settings",
+};
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AutoProcessToggle } from "@/features/recordings/components/auto-process-toggle";
 import { CookiePreferences } from "@/features/settings/components/cookie-preferences";

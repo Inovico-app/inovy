@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { AgentDisabledBanner } from "@/components/agent-disabled-banner";
 import { PageHeader } from "@/components/page-header";
+
+export const metadata: Metadata = {
+  title: "Agent Settings",
+  description: "Configure AI agent and manage your knowledge base",
+};
 import { KnowledgeBaseBrowser } from "@/features/agent/components/knowledge-base-browser";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { Permissions } from "@/lib/rbac/permissions";

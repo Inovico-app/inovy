@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +19,19 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
+
+interface OrganizationDetailPageProps {
+  params: Promise<{ organizationId: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: OrganizationDetailPageProps): Promise<Metadata> {
+  const { organizationId } = await params;
+  const organization = await getCachedOrganizationById(organizationId);
+  const name = organization?.name ?? "Organization";
+  return { title: name, description: `Manage organization: ${name}` };
+}
 
 interface OrganizationPageProps {
   params: Promise<{

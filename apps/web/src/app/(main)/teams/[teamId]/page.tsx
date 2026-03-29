@@ -6,10 +6,21 @@ export async function generateMetadata({
   params,
 }: TeamPageProps): Promise<Metadata> {
   const { teamId } = await params;
-  return { title: `Team ${teamId}` };
+  const authResult = await getBetterAuthSession();
+  if (authResult.isOk() && authResult.value.organization) {
+    const team = await TeamQueries.selectTeamById(
+      teamId,
+      authResult.value.organization.id,
+    );
+    if (team) {
+      return { title: team.name };
+    }
+  }
+  return { title: "Team" };
 }
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { canAccessTeam } from "@/lib/rbac/rbac";
+import { TeamQueries } from "@/server/data-access/teams.queries";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 

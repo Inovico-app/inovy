@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import {
   Card,
   CardContent,
@@ -7,6 +8,11 @@ import {
 } from "@/components/ui/card";
 import { AuditLogViewer } from "@/features/admin/components/audit/audit-log-viewer";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+
+export const metadata: Metadata = {
+  title: "Audit Logs",
+  description: "View organization audit trail and activity logs",
+};
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
 import type { AuditLogFilters } from "@/server/data-access/audit-logs.queries";

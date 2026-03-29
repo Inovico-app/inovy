@@ -6,7 +6,17 @@ export async function generateMetadata({
   params,
 }: TeamMembersPageProps): Promise<Metadata> {
   const { teamId } = await params;
-  return { title: `Team Members ${teamId}` };
+  const authResult = await getBetterAuthSession();
+  if (authResult.isOk() && authResult.value.organization) {
+    const team = await TeamQueries.selectTeamById(
+      teamId,
+      authResult.value.organization.id,
+    );
+    if (team) {
+      return { title: `${team.name} Members` };
+    }
+  }
+  return { title: "Team Members" };
 }
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import {
@@ -14,6 +24,7 @@ import {
   isOrganizationAdmin,
   isTeamManager,
 } from "@/lib/rbac/rbac";
+import { TeamQueries } from "@/server/data-access/teams.queries";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 

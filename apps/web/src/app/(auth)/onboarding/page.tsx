@@ -4,8 +4,13 @@ import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
 import { OrganizationQueries } from "@/server/data-access/organization.queries";
 import { OnboardingService } from "@/server/services/onboarding.service";
-import type { Route } from "next";
+import type { Metadata, Route } from "next";
 import { getTranslations } from "next-intl/server";
+
+export const metadata: Metadata = {
+  title: "Onboarding",
+  description: "Set up your Inovy account",
+};
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 

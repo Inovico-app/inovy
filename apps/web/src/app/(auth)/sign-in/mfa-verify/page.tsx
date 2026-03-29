@@ -1,15 +1,9 @@
-"use client";
+import type { Metadata } from "next";
+import MfaVerifyPage from "./mfa-verify-content";
 
-import { AuthShell } from "@/components/auth/auth-shell";
-import { MfaVerify } from "@/features/auth/components/mfa-verify";
-import { Suspense } from "react";
+export const metadata: Metadata = {
+  title: "Verify Identity",
+  description: "Complete multi-factor authentication to sign in",
+};
 
-export default function MfaVerifyPage() {
-  return (
-    <Suspense>
-      <AuthShell>
-        <MfaVerify />
-      </AuthShell>
-    </Suspense>
-  );
-}
+export default MfaVerifyPage;

@@ -11,8 +11,8 @@ import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 export const metadata = {
-  title: "User Analytics",
-  description: "View user-specific agent engagement and feedback metrics",
+  title: "Agent Analytics",
+  description: "View agent engagement and feedback metrics per user",
 };
 
 interface UserAnalyticsContentProps {

@@ -6,7 +6,11 @@ export async function generateMetadata({
   params,
 }: RecordingDetailPageProps): Promise<Metadata> {
   const { recordingId } = await params;
-  return { title: `Recording ${recordingId}` };
+  const recording = await RecordingsQueries.selectRecordingById(recordingId);
+  if (recording) {
+    return { title: recording.title };
+  }
+  return { title: "Recording" };
 }
 import { EnhancedSummarySection } from "@/features/recordings/components/enhanced-summary-section";
 import { RecordingDetailActionsDropdown } from "@/features/recordings/components/recording-detail-actions-dropdown";
@@ -23,6 +27,7 @@ import { TranscriptionSection } from "@/features/recordings/components/transcrip
 import { getRecordingDetailPageData } from "@/features/recordings/server/get-recording-detail-page-data";
 import { KnowledgeContextIndicator } from "@/features/knowledge-base/components/knowledge-context-indicator";
 import { FeedbackQueries } from "@/server/data-access/feedback.queries";
+import { RecordingsQueries } from "@/server/data-access/recordings.queries";
 import { getCachedKnowledgeDocuments } from "@/server/cache/knowledge-base.cache";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import type { AIInsightDto } from "@/server/dto/ai-insight.dto";

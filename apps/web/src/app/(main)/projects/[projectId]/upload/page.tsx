@@ -6,7 +6,17 @@ export async function generateMetadata({
   params,
 }: UploadRecordingPageProps): Promise<Metadata> {
   const { projectId } = await params;
-  return { title: `Upload Recording - Project ${projectId}` };
+  const authResult = await resolveAuthContext("UploadRecording.metadata");
+  if (authResult.isOk()) {
+    const project = await ProjectService.getProjectById(
+      projectId,
+      authResult.value,
+    );
+    if (project.isOk()) {
+      return { title: `Upload Recording - ${project.value.name}` };
+    }
+  }
+  return { title: "Upload Recording" };
 }
 import { resolveAuthContext } from "@/lib/auth-context";
 import { ProjectService } from "@/server/services/project.service";
