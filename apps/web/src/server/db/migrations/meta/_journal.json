@@ -519,6 +519,13 @@
       "when": 1774709259977,
       "tag": "0079_add-vocabulary-boost-category",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1774786651842,
+      "tag": "0080_add-stripe-billing-schema",
+      "breakpoints": true
     }
   ]
 }
