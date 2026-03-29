@@ -37,6 +37,7 @@ export type CacheEntity =
   | "orgInstructions"
   | "orgMembers"
   | "notification"
+  | "notificationUnreadCount"
   | "botSettings"
   | "botSession"
   | "botSessions"

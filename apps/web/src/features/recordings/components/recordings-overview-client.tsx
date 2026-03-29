@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { RecordingDto } from "@/server/dto/recording.dto";
+import { useMemo } from "react";
 import { RecordingCard } from "./recording-card";
 import { RecordingsFilters } from "./recordings-filters";
 import { RecordingsViewToggle } from "./recordings-view-toggle";
@@ -41,30 +42,31 @@ export function RecordingsOverviewClient({
   });
 
   // Group recordings by project for grouped view
-  const groupedRecordings = filteredRecordings.reduce(
-    (acc, recording) => {
-      const projectId = recording.projectId;
-      if (!acc[projectId]) {
-        acc[projectId] = {
-          projectId,
-          projectName: recording.projectName,
-          recordings: [],
-        };
-      }
-      acc[projectId].recordings.push(recording);
-      return acc;
-    },
-    {} as Record<
-      string,
-      {
-        projectId: string;
-        projectName: string;
-        recordings: Array<RecordingDto & { projectName: string }>;
-      }
-    >,
-  );
-
-  const groupedRecordingsList = Object.values(groupedRecordings);
+  const groupedRecordingsList = useMemo(() => {
+    const grouped = filteredRecordings.reduce(
+      (acc, recording) => {
+        const projectId = recording.projectId;
+        if (!acc[projectId]) {
+          acc[projectId] = {
+            projectId,
+            projectName: recording.projectName,
+            recordings: [],
+          };
+        }
+        acc[projectId].recordings.push(recording);
+        return acc;
+      },
+      {} as Record<
+        string,
+        {
+          projectId: string;
+          projectName: string;
+          recordings: Array<RecordingDto & { projectName: string }>;
+        }
+      >,
+    );
+    return Object.values(grouped);
+  }, [filteredRecordings]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

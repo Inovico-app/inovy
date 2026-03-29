@@ -51,6 +51,26 @@ export class TasksQueries {
       .orderBy(desc(tasks.createdAt));
   }
 
+  /**
+   * Get tasks created by a specific user within an organization.
+   * Used by GDPR deletion to avoid fetching all org tasks into memory.
+   */
+  static async getTasksByCreator(
+    organizationId: string,
+    userId: string,
+  ): Promise<Task[]> {
+    return await db
+      .select()
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.organizationId, organizationId),
+          eq(tasks.createdById, userId),
+        ),
+      )
+      .orderBy(desc(tasks.createdAt));
+  }
+
   static async getTasksByOrganization(
     organizationId: string,
     filters?: {
@@ -261,38 +281,54 @@ export class TasksQueries {
     organizationId: string,
     userId: string,
   ): Promise<TaskStatsDto> {
-    const userTasks = await db
-      .select()
-      .from(tasks)
-      .where(
-        and(
-          eq(tasks.organizationId, organizationId),
-          eq(tasks.assigneeId, userId),
-        ),
-      );
+    const baseConditions = and(
+      eq(tasks.organizationId, organizationId),
+      eq(tasks.assigneeId, userId),
+    );
 
-    const stats: TaskStatsDto = {
-      total: userTasks.length,
-      byStatus: {
-        pending: 0,
-        in_progress: 0,
-        completed: 0,
-        cancelled: 0,
-      },
-      byPriority: {
-        low: 0,
-        medium: 0,
-        high: 0,
-        urgent: 0,
-      },
+    const [statusRows, priorityRows] = await Promise.all([
+      db
+        .select({
+          status: tasks.status,
+          count: count(),
+        })
+        .from(tasks)
+        .where(baseConditions)
+        .groupBy(tasks.status),
+      db
+        .select({
+          priority: tasks.priority,
+          count: count(),
+        })
+        .from(tasks)
+        .where(baseConditions)
+        .groupBy(tasks.priority),
+    ]);
+
+    const byStatus: TaskStatsDto["byStatus"] = {
+      pending: 0,
+      in_progress: 0,
+      completed: 0,
+      cancelled: 0,
     };
-
-    for (const task of userTasks) {
-      stats.byStatus[task.status]++;
-      stats.byPriority[task.priority]++;
+    let total = 0;
+    for (const row of statusRows) {
+      const c = Number(row.count);
+      byStatus[row.status] = c;
+      total += c;
     }
 
-    return stats;
+    const byPriority: TaskStatsDto["byPriority"] = {
+      low: 0,
+      medium: 0,
+      high: 0,
+      urgent: 0,
+    };
+    for (const row of priorityRows) {
+      byPriority[row.priority] = Number(row.count);
+    }
+
+    return { total, byStatus, byPriority };
   }
 
   static async countByOrganization(organizationId: string): Promise<number> {

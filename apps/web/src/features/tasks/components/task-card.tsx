@@ -16,6 +16,7 @@ import {
 import type { Task } from "@/server/db/schema/tasks";
 import type { TaskWithContextDto } from "@/server/dto/task.dto";
 import Link from "next/link";
+import { memo } from "react";
 import { useTranslations } from "next-intl";
 import { useTaskAssignee } from "../hooks/use-task-assignee";
 import { TaskEditDialog } from "./task-edit-dialog";
@@ -43,7 +44,7 @@ function formatTimestamp(seconds: number | null): string {
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 }
 
-export function TaskCard({
+export const TaskCard = memo(function TaskCard({
   task,
   onStatusChange,
   showContext = false,
@@ -229,4 +230,4 @@ export function TaskCard({
       </CardContent>
     </Card>
   );
-}
+});

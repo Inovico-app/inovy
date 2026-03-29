@@ -127,6 +127,9 @@ export const recordings = pgTable(
       table.externalRecordingId,
     ),
     meetingIdIdx: index("recordings_meeting_id_idx").on(table.meetingId),
+    organizationIdIdx: index("recordings_organization_id_idx").on(
+      table.organizationId,
+    ),
   }),
 );
 

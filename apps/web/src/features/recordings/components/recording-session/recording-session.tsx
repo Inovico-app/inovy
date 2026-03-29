@@ -31,6 +31,12 @@ import { RecoveryDialog } from "./recovery-dialog";
 import { TranscriptionPanel } from "./transcription-panel";
 import { useTranslations } from "next-intl";
 
+const RECORDING_CONTAINER_STYLE = {
+  height: "calc(100dvh - 12rem)",
+  minHeight: "600px",
+  maxHeight: "800px",
+} as const;
+
 interface RecordingSessionProps {
   config: UseRecordingSessionConfig;
   autoStart?: boolean;
@@ -220,11 +226,7 @@ export function RecordingSession({
           {/* Main recording panel */}
           <div
             className={showTranscription ? "flex-1 min-w-0" : "w-full"}
-            style={{
-              height: "calc(100dvh - 12rem)",
-              minHeight: "600px",
-              maxHeight: "800px",
-            }}
+            style={RECORDING_CONTAINER_STYLE}
           >
             <div
               className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br from-card via-card to-card/50 transition-all duration-500 h-full flex flex-col ${
@@ -330,14 +332,7 @@ export function RecordingSession({
 
           {/* Transcription panel */}
           {showTranscription && (
-            <div
-              className="flex-1 min-w-0"
-              style={{
-                height: "calc(100dvh - 12rem)",
-                minHeight: "600px",
-                maxHeight: "800px",
-              }}
-            >
+            <div className="flex-1 min-w-0" style={RECORDING_CONTAINER_STYLE}>
               <TranscriptionPanel transcription={session.transcription} />
             </div>
           )}

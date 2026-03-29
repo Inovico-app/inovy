@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUserRole } from "@/hooks/use-user-role";
+import { useActiveMemberRole } from "@/hooks/use-active-member-role";
 import type { RecordingDto } from "@/server/dto/recording.dto";
 import {
   ArchiveIcon,
@@ -45,12 +45,12 @@ export function RecordingDetailActionsDropdown({
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  const { data: userRole } = useUserRole();
+  const { data: memberRole } = useActiveMemberRole();
 
   // Check if user has permission to move recordings
   // Manager, Admin, and SuperAdmin roles have recordings:update permission
   const canMoveRecording =
-    userRole?.roles?.some((role) =>
+    memberRole?.roles?.some((role) =>
       ["manager", "admin", "superadmin"].includes(role.toLowerCase()),
     ) ?? false;
 

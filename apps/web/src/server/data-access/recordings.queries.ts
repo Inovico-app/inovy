@@ -3,7 +3,6 @@ import {
   count,
   desc,
   eq,
-  gte,
   ilike,
   inArray,
   lte,
@@ -33,6 +32,65 @@ export class RecordingsQueries {
       .where(eq(recordings.id, id))
       .limit(1);
     return recording ?? null;
+  }
+
+  /**
+   * Fetch a recording by ID with its project's teamId in a single JOIN query.
+   * Used to avoid sequential queries when both recording data and team access are needed.
+   */
+  static async selectRecordingByIdWithTeam(
+    id: string,
+  ): Promise<(Recording & { teamId: string | null }) | null> {
+    const [result] = await db
+      .select({
+        id: recordings.id,
+        projectId: recordings.projectId,
+        externalRecordingId: recordings.externalRecordingId,
+        title: recordings.title,
+        description: recordings.description,
+        fileUrl: recordings.fileUrl,
+        fileName: recordings.fileName,
+        fileSize: recordings.fileSize,
+        fileMimeType: recordings.fileMimeType,
+        storageStatus: recordings.storageStatus,
+        recallBotId: recordings.recallBotId,
+        duration: recordings.duration,
+        recordingDate: recordings.recordingDate,
+        transcriptionStatus: recordings.transcriptionStatus,
+        transcriptionRetryCount: recordings.transcriptionRetryCount,
+        transcriptionNextRetryAt: recordings.transcriptionNextRetryAt,
+        transcriptionLastError: recordings.transcriptionLastError,
+        transcriptionText: recordings.transcriptionText,
+        redactedTranscriptionText: recordings.redactedTranscriptionText,
+        isTranscriptionManuallyEdited: recordings.isTranscriptionManuallyEdited,
+        transcriptionLastEditedById: recordings.transcriptionLastEditedById,
+        transcriptionLastEditedAt: recordings.transcriptionLastEditedAt,
+        recordingMode: recordings.recordingMode,
+        language: recordings.language,
+        status: recordings.status,
+        workflowStatus: recordings.workflowStatus,
+        workflowError: recordings.workflowError,
+        workflowRetryCount: recordings.workflowRetryCount,
+        lastReprocessedAt: recordings.lastReprocessedAt,
+        reprocessingTriggeredById: recordings.reprocessingTriggeredById,
+        organizationId: recordings.organizationId,
+        createdById: recordings.createdById,
+        createdAt: recordings.createdAt,
+        updatedAt: recordings.updatedAt,
+        consentGiven: recordings.consentGiven,
+        consentGivenBy: recordings.consentGivenBy,
+        consentGivenAt: recordings.consentGivenAt,
+        consentRevokedAt: recordings.consentRevokedAt,
+        isEncrypted: recordings.isEncrypted,
+        encryptionMetadata: recordings.encryptionMetadata,
+        meetingId: recordings.meetingId,
+        teamId: projects.teamId,
+      })
+      .from(recordings)
+      .leftJoin(projects, eq(recordings.projectId, projects.id))
+      .where(eq(recordings.id, id))
+      .limit(1);
+    return result ?? null;
   }
 
   static async selectRecordingByMeetingId(
@@ -192,11 +250,11 @@ export class RecordingsQueries {
   }
 
   static async countRecordingsByProjectId(projectId: string): Promise<number> {
-    const results = await db
-      .select()
+    const [row] = await db
+      .select({ value: count() })
       .from(recordings)
       .where(eq(recordings.projectId, projectId));
-    return results.length;
+    return Number(row?.value ?? 0);
   }
 
   static async countByOrganization(organizationId: string): Promise<number> {
@@ -216,37 +274,22 @@ export class RecordingsQueries {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    // Get total count and last recording date in a single optimized query
-    const statsResult = await db
+    // Single query with conditional aggregation for all stats
+    const [stats] = await db
       .select({
         totalCount: sql<number>`cast(count(${recordings.id}) as int)`,
         lastRecordingDate: max(recordings.createdAt),
+        recentCount: count(
+          sql`CASE WHEN ${recordings.createdAt} >= ${sevenDaysAgo} THEN 1 END`,
+        ),
       })
       .from(recordings)
       .where(eq(recordings.projectId, projectId));
 
-    const totalCount = statsResult[0]?.totalCount ?? 0;
-    const lastRecordingDate = statsResult[0]?.lastRecordingDate ?? null;
-
-    // Get recent count (recordings from last 7 days) using an optimized query
-    const recentStatsResult = await db
-      .select({
-        recentCount: sql<number>`cast(count(${recordings.id}) as int)`,
-      })
-      .from(recordings)
-      .where(
-        and(
-          eq(recordings.projectId, projectId),
-          gte(recordings.createdAt, sevenDaysAgo),
-        ),
-      );
-
-    const recentCount = recentStatsResult[0]?.recentCount ?? 0;
-
     return {
-      totalCount,
-      lastRecordingDate,
-      recentCount,
+      totalCount: stats?.totalCount ?? 0,
+      lastRecordingDate: stats?.lastRecordingDate ?? null,
+      recentCount: Number(stats?.recentCount ?? 0),
     };
   }
 
@@ -254,53 +297,47 @@ export class RecordingsQueries {
     recordingId: string,
     organizationId: string,
   ): Promise<boolean> {
-    return await db.transaction(async (tx) => {
-      const result = await tx
-        .update(recordings)
-        .set({ status: "archived", updatedAt: new Date() })
-        .where(
-          and(
-            eq(recordings.id, recordingId),
-            eq(recordings.organizationId, organizationId),
-          ),
-        );
-      return result.rowCount !== null && result.rowCount > 0;
-    });
+    const result = await db
+      .update(recordings)
+      .set({ status: "archived", updatedAt: new Date() })
+      .where(
+        and(
+          eq(recordings.id, recordingId),
+          eq(recordings.organizationId, organizationId),
+        ),
+      );
+    return result.rowCount !== null && result.rowCount > 0;
   }
 
   static async unarchiveRecording(
     recordingId: string,
     organizationId: string,
   ): Promise<boolean> {
-    return await db.transaction(async (tx) => {
-      const result = await tx
-        .update(recordings)
-        .set({ status: "active", updatedAt: new Date() })
-        .where(
-          and(
-            eq(recordings.id, recordingId),
-            eq(recordings.organizationId, organizationId),
-          ),
-        );
-      return result.rowCount !== null && result.rowCount > 0;
-    });
+    const result = await db
+      .update(recordings)
+      .set({ status: "active", updatedAt: new Date() })
+      .where(
+        and(
+          eq(recordings.id, recordingId),
+          eq(recordings.organizationId, organizationId),
+        ),
+      );
+    return result.rowCount !== null && result.rowCount > 0;
   }
 
   static async deleteRecording(
     recordingId: string,
     organizationId: string,
   ): Promise<boolean> {
-    return await db.transaction(async (tx) => {
-      const result = await tx
-        .delete(recordings)
-        .where(
-          and(
-            eq(recordings.id, recordingId),
-            eq(recordings.organizationId, organizationId),
-          ),
-        );
-      return result.rowCount !== null && result.rowCount > 0;
-    });
+    const result = await db
+      .delete(recordings)
+      .where(
+        and(
+          eq(recordings.id, recordingId),
+          eq(recordings.organizationId, organizationId),
+        ),
+      );
+    return result.rowCount !== null && result.rowCount > 0;
   }
 
   static async moveRecordingToProject(
@@ -308,19 +345,17 @@ export class RecordingsQueries {
     targetProjectId: string,
     organizationId: string,
   ): Promise<Recording | undefined> {
-    return await db.transaction(async (tx) => {
-      const [recording] = await tx
-        .update(recordings)
-        .set({ projectId: targetProjectId, updatedAt: new Date() })
-        .where(
-          and(
-            eq(recordings.id, recordingId),
-            eq(recordings.organizationId, organizationId),
-          ),
-        )
-        .returning();
-      return recording;
-    });
+    const [recording] = await db
+      .update(recordings)
+      .set({ projectId: targetProjectId, updatedAt: new Date() })
+      .where(
+        and(
+          eq(recordings.id, recordingId),
+          eq(recordings.organizationId, organizationId),
+        ),
+      )
+      .returning();
+    return recording;
   }
 
   /**
@@ -351,36 +386,19 @@ export class RecordingsQueries {
   static async upsertRecordingByExternalId(
     data: NewRecording & { externalRecordingId: string },
   ): Promise<Recording> {
-    return await db.transaction(async (tx) => {
-      // Check if recording exists
-      const existing = await tx
-        .select()
-        .from(recordings)
-        .where(
-          and(
-            eq(recordings.externalRecordingId, data.externalRecordingId),
-            eq(recordings.organizationId, data.organizationId),
-          ),
-        )
-        .limit(1);
-
-      if (existing.length > 0) {
-        // Update existing recording
-        const [updated] = await tx
-          .update(recordings)
-          .set({
-            ...data,
-            updatedAt: new Date(),
-          })
-          .where(eq(recordings.id, existing[0].id))
-          .returning();
-        return updated;
-      } else {
-        // Insert new recording
-        const [created] = await tx.insert(recordings).values(data).returning();
-        return created;
-      }
-    });
+    const { id: _id, createdAt: _createdAt, ...updateData } = data;
+    const [result] = await db
+      .insert(recordings)
+      .values(data)
+      .onConflictDoUpdate({
+        target: [recordings.organizationId, recordings.externalRecordingId],
+        set: {
+          ...updateData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return result;
   }
 
   // Backoff schedule for deferred retries: 5m, 15m, 1h, 4h, 12h
@@ -459,6 +477,40 @@ export class RecordingsQueries {
         updatedAt: new Date(),
       })
       .where(eq(recordings.id, id));
+  }
+
+  /**
+   * Select recordings created by a specific user within an organization.
+   * Used by GDPR deletion to avoid fetching all org recordings into memory.
+   */
+  static async selectRecordingsByCreator(
+    organizationId: string,
+    userId: string,
+  ): Promise<Recording[]> {
+    return await db
+      .select()
+      .from(recordings)
+      .where(
+        and(
+          eq(recordings.organizationId, organizationId),
+          eq(recordings.createdById, userId),
+        ),
+      )
+      .orderBy(desc(recordings.createdAt));
+  }
+
+  /**
+   * Select recordings by IDs (batch fetch).
+   * Returns only recordings matching the provided IDs.
+   */
+  static async selectRecordingsByIds(
+    recordingIds: string[],
+  ): Promise<Recording[]> {
+    if (recordingIds.length === 0) return [];
+    return await db
+      .select()
+      .from(recordings)
+      .where(inArray(recordings.id, recordingIds));
   }
 
   static async selectRecordingsByOrganization(

@@ -15,7 +15,11 @@ import { Suspense } from "react";
 import "../index.css";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
+const geist = Geist({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 const jetBrainsMono = JetBrains_Mono({
   variable: "--font-mono",
@@ -25,8 +29,11 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "inovy",
-  description: "inovy",
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "https://app.inovy.io",
+  ),
+  title: { default: "Inovy", template: "%s | Inovy" },
+  description: "EU-compliant meeting intelligence platform",
 };
 
 export const viewport: Viewport = {

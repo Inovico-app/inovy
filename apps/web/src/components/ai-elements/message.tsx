@@ -21,8 +21,8 @@ import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import {
   createContext,
   memo,
+  useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -116,8 +116,6 @@ type MessageBranchContextType = {
   totalBranches: number;
   goToPrevious: () => void;
   goToNext: () => void;
-  branches: ReactElement[];
-  setBranches: (branches: ReactElement[]) => void;
 };
 
 const MessageBranchContext = createContext<MessageBranchContextType | null>(
@@ -145,43 +143,63 @@ export const MessageBranch = ({
   defaultBranch = 0,
   onBranchChange,
   className,
+  children,
   ...props
 }: MessageBranchProps) => {
   const [currentBranch, setCurrentBranch] = useState(defaultBranch);
-  const [branches, setBranches] = useState<ReactElement[]>([]);
+  const childrenArray = useMemo(
+    () => (Array.isArray(children) ? children : [children]) as ReactElement[],
+    [children],
+  );
 
-  const handleBranchChange = (newBranch: number) => {
-    setCurrentBranch(newBranch);
-    onBranchChange?.(newBranch);
-  };
+  const totalBranches = childrenArray.length;
 
-  const goToPrevious = () => {
-    const newBranch =
-      currentBranch > 0 ? currentBranch - 1 : branches.length - 1;
+  const handleBranchChange = useCallback(
+    (newBranch: number) => {
+      setCurrentBranch(newBranch);
+      onBranchChange?.(newBranch);
+    },
+    [onBranchChange],
+  );
+
+  const goToPrevious = useCallback(() => {
+    const newBranch = currentBranch > 0 ? currentBranch - 1 : totalBranches - 1;
     handleBranchChange(newBranch);
-  };
+  }, [currentBranch, totalBranches, handleBranchChange]);
 
-  const goToNext = () => {
-    const newBranch =
-      currentBranch < branches.length - 1 ? currentBranch + 1 : 0;
+  const goToNext = useCallback(() => {
+    const newBranch = currentBranch < totalBranches - 1 ? currentBranch + 1 : 0;
     handleBranchChange(newBranch);
-  };
+  }, [currentBranch, totalBranches, handleBranchChange]);
 
-  const contextValue: MessageBranchContextType = {
-    currentBranch,
-    totalBranches: branches.length,
-    goToPrevious,
-    goToNext,
-    branches,
-    setBranches,
-  };
+  const contextValue = useMemo<MessageBranchContextType>(
+    () => ({
+      currentBranch,
+      totalBranches,
+      goToPrevious,
+      goToNext,
+    }),
+    [currentBranch, totalBranches, goToPrevious, goToNext],
+  );
 
   return (
     <MessageBranchContext.Provider value={contextValue}>
       <div
         className={cn("grid w-full gap-2 [&>div]:pb-0", className)}
         {...props}
-      />
+      >
+        {childrenArray.map((branch, index) => (
+          <div
+            className={cn(
+              "grid gap-2 overflow-hidden [&>div]:pb-0",
+              index === currentBranch ? "block" : "hidden",
+            )}
+            key={branch.key}
+          >
+            {branch}
+          </div>
+        ))}
+      </div>
     </MessageBranchContext.Provider>
   );
 };
@@ -192,18 +210,11 @@ export const MessageBranchContent = ({
   children,
   ...props
 }: MessageBranchContentProps) => {
-  const { currentBranch, setBranches, branches } = useMessageBranch();
+  const { currentBranch } = useMessageBranch();
   const childrenArray = useMemo(
     () => (Array.isArray(children) ? children : [children]),
     [children],
   );
-
-  // Use useEffect to update branches when they change
-  useEffect(() => {
-    if (branches.length !== childrenArray.length) {
-      setBranches(childrenArray);
-    }
-  }, [childrenArray, branches, setBranches]);
 
   return childrenArray.map((branch, index) => (
     <div

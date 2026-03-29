@@ -119,9 +119,13 @@ export function UnifiedChatInterface({
   });
 
   // Filter out system messages for source extraction
-  const filteredMessages = messages.filter(
-    (msg): msg is Extract<typeof msg, { role: "user" | "assistant" }> =>
-      msg.role === "user" || msg.role === "assistant",
+  const filteredMessages = useMemo(
+    () =>
+      messages.filter(
+        (msg): msg is Extract<typeof msg, { role: "user" | "assistant" }> =>
+          msg.role === "user" || msg.role === "assistant",
+      ),
+    [messages],
   );
   const { messageSourcesMap } = useChatSources(
     filteredMessages as Array<{

@@ -7,27 +7,33 @@
 // mutation that needs to refetch). Use getSeriesSubscriptionsAction
 // directly from a server component where possible.
 
-import { useCallback, useEffect, useState } from "react";
-import { useAction } from "next-safe-action/hooks";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import type { BotSeriesSubscription } from "@/server/db/schema/bot-series-subscriptions";
 import { getSeriesSubscriptionsAction } from "../actions/get-series-subscriptions";
 
-export function useSeriesSubscriptions() {
-  const [subscriptions, setSubscriptions] = useState<BotSeriesSubscription[]>(
-    [],
-  );
+const SERIES_SUBSCRIPTIONS_QUERY_KEY = ["series-subscriptions"] as const;
 
-  const { execute, isExecuting } = useAction(getSeriesSubscriptionsAction, {
-    onSuccess: ({ data }) => {
-      if (data) setSubscriptions(data);
+export function useSeriesSubscriptions() {
+  const queryClient = useQueryClient();
+
+  const { data: subscriptions = [], isLoading } = useQuery<
+    BotSeriesSubscription[]
+  >({
+    queryKey: SERIES_SUBSCRIPTIONS_QUERY_KEY,
+    queryFn: async () => {
+      const result = await getSeriesSubscriptionsAction();
+      return result?.data ?? [];
     },
   });
 
-  useEffect(() => {
-    execute();
-  }, [execute]);
+  const refetch = useCallback(
+    () =>
+      queryClient.invalidateQueries({
+        queryKey: SERIES_SUBSCRIPTIONS_QUERY_KEY,
+      }),
+    [queryClient],
+  );
 
-  const refetch = useCallback(() => execute(), [execute]);
-
-  return { subscriptions, isLoading: isExecuting, refetch };
+  return { subscriptions, isLoading, refetch };
 }

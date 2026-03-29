@@ -1,6 +1,6 @@
 "use client";
 
-import { useUserRole } from "@/hooks/use-user-role";
+import { useActiveMemberRole } from "@/hooks/use-active-member-role";
 import type { Route } from "next";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -32,8 +32,8 @@ function isActive(pathname: string, href: string): boolean {
 export function HeaderNavigation() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
-  const { data: userRoleData } = useUserRole();
-  const { isAdmin, isSuperAdmin, roles: _roles } = userRoleData ?? {};
+  const { data: memberRoleData } = useActiveMemberRole();
+  const { isAdmin, isSuperAdmin } = memberRoleData ?? {};
   const t = useTranslations();
 
   // Prevent hydration mismatch — intentional synchronous setState in mount effect

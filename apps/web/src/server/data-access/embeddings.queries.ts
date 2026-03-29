@@ -7,7 +7,7 @@ import { and, eq, sql } from "drizzle-orm";
 
 export class EmbeddingsQueries {
   static async createEmbedding(
-    embedding: NewChatEmbedding
+    embedding: NewChatEmbedding,
   ): Promise<{ id: string }> {
     const [result] = await db
       .insert(chatEmbeddings)
@@ -17,7 +17,7 @@ export class EmbeddingsQueries {
   }
 
   static async createEmbeddingsBatch(
-    embeddings: NewChatEmbedding[]
+    embeddings: NewChatEmbedding[],
   ): Promise<void> {
     await db.insert(chatEmbeddings).values(embeddings);
   }
@@ -25,7 +25,7 @@ export class EmbeddingsQueries {
   static async searchSimilar(
     queryEmbedding: number[],
     projectId: string,
-    options: { matchThreshold?: number; matchCount?: number } = {}
+    options: { matchThreshold?: number; matchCount?: number } = {},
   ): Promise<
     Array<{
       id: string;
@@ -47,7 +47,7 @@ export class EmbeddingsQueries {
           ${matchThreshold}::float,
           ${matchCount}::int
         )
-      `
+      `,
     );
     return results.rows.map((row: Record<string, unknown>) => ({
       id: row.id as string,
@@ -63,7 +63,7 @@ export class EmbeddingsQueries {
   static async searchSimilarOrganizationWide(
     queryEmbedding: number[],
     organizationId: string,
-    options: { matchThreshold?: number; matchCount?: number } = {}
+    options: { matchThreshold?: number; matchCount?: number } = {},
   ): Promise<
     Array<{
       id: string;
@@ -77,20 +77,9 @@ export class EmbeddingsQueries {
   > {
     const { matchThreshold = 0.5, matchCount = 15 } = options;
     const vectorString = `[${queryEmbedding.join(",")}]`;
-    const projectsResult = await db.execute(
-      sql`
-        SELECT id FROM projects 
-        WHERE organization_id = ${organizationId} 
-        AND archived_at IS NULL
-      `
-    );
-    const projectIds = projectsResult.rows.map(
-      (row: Record<string, unknown>) => row.id as string
-    );
-    if (projectIds.length === 0) return [];
     const results = await db.execute(
       sql`
-        SELECT 
+        SELECT
           ce.id,
           ce.project_id,
           ce.content_type,
@@ -99,11 +88,15 @@ export class EmbeddingsQueries {
           ce.metadata,
           1 - (ce.embedding <=> ${vectorString}::vector(1536)) as similarity
         FROM chat_embeddings ce
-        WHERE ce.project_id = ANY(${projectIds}::uuid[])
+        WHERE ce.project_id IN (
+          SELECT id FROM projects
+          WHERE organization_id = ${organizationId}
+          AND status != 'archived'
+        )
         AND 1 - (ce.embedding <=> ${vectorString}::vector(1536)) > ${matchThreshold}
         ORDER BY ce.embedding <=> ${vectorString}::vector(1536)
         LIMIT ${matchCount}
-      `
+      `,
     );
     return results.rows.map((row: Record<string, unknown>) => ({
       id: row.id as string,
@@ -123,15 +116,15 @@ export class EmbeddingsQueries {
       | "transcription"
       | "summary"
       | "task"
-      | "organization_instructions"
+      | "organization_instructions",
   ): Promise<void> {
     await db
       .delete(chatEmbeddings)
       .where(
         and(
           eq(chatEmbeddings.contentId, contentId),
-          eq(chatEmbeddings.contentType, contentType)
-        )
+          eq(chatEmbeddings.contentType, contentType),
+        ),
       );
   }
 
@@ -150,7 +143,7 @@ export class EmbeddingsQueries {
       | "summary"
       | "task"
       | "project_template"
-      | "organization_instructions"
+      | "organization_instructions",
   ): Promise<boolean> {
     const [result] = await db
       .select({ count: sql<number>`count(*)` })
@@ -158,8 +151,8 @@ export class EmbeddingsQueries {
       .where(
         and(
           eq(chatEmbeddings.contentId, contentId),
-          eq(chatEmbeddings.contentType, contentType)
-        )
+          eq(chatEmbeddings.contentType, contentType),
+        ),
       );
     return Number(result.count) > 0;
   }
@@ -170,14 +163,14 @@ export class EmbeddingsQueries {
       .where(
         and(
           eq(chatEmbeddings.organizationId, organizationId),
-          eq(chatEmbeddings.contentType, "organization_instructions")
-        )
+          eq(chatEmbeddings.contentType, "organization_instructions"),
+        ),
       );
   }
 
   static async updateEmbeddingsProject(
     recordingId: string,
-    newProjectId: string
+    newProjectId: string,
   ): Promise<void> {
     await db.transaction(async (tx) => {
       const [result] = await tx
@@ -186,12 +179,11 @@ export class EmbeddingsQueries {
         .where(
           and(
             eq(chatEmbeddings.contentId, recordingId),
-            eq(chatEmbeddings.contentType, "recording")
-          )
+            eq(chatEmbeddings.contentType, "recording"),
+          ),
         )
         .returning();
       return result;
     });
   }
 }
-

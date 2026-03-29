@@ -161,7 +161,7 @@ export async function getCachedOrganizationById(organizationId: string) {
  */
 export async function getCachedAgentConfig(organizationId: string) {
   "use cache";
-  cacheTag(...tagsFor("organization", { organizationId }));
+  cacheTag(...tagsFor("agentSettings", { organizationId }));
 
   try {
     const agentEnabled =

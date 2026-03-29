@@ -15,6 +15,12 @@ export const queryKeys = {
       [...queryKeys.recordings.details(), recordingId] as const,
     status: (recordingId: string) =>
       [...queryKeys.recordings.all, "status", recordingId] as const,
+    reprocessingStatus: (recordingId: string) =>
+      [
+        ...queryKeys.recordings.all,
+        "reprocessing-status",
+        recordingId,
+      ] as const,
     byOrganization: (
       organizationId: string,
       filters?: Record<string, unknown>,
@@ -79,6 +85,19 @@ export const queryKeys = {
   },
   meetings: {
     all: ["meetings"] as const,
+    byMonth: (monthKey: number) => ["meetings", monthKey] as const,
+  },
+  calendars: {
+    all: ["calendars"] as const,
+  },
+  summaryHistory: (recordingId: string) =>
+    ["summary-history", recordingId] as const,
+  taskHistory: (taskId: string) => ["task-history", taskId] as const,
+  organizationTags: ["organization-tags"] as const,
+  taskTags: (taskId: string) => ["task-tags", taskId] as const,
+  conversations: {
+    all: (params: unknown) => ["conversations", params] as const,
+    search: (...args: unknown[]) => ["conversation-search", ...args] as const,
   },
   botSessions: {
     all: ["bot-sessions"] as const,

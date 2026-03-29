@@ -1,11 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { getTaskTags } from "../actions/get-task-tags";
 
 export function useTaskTags(taskId: string) {
   return useQuery({
-    queryKey: ["task-tags", taskId],
+    queryKey: queryKeys.taskTags(taskId),
     queryFn: async () => {
       const result = await getTaskTags({ taskId });
       if (result.serverError || !result.data) {
@@ -16,4 +17,3 @@ export function useTaskTags(taskId: string) {
     enabled: !!taskId,
   });
 }
-

@@ -68,36 +68,59 @@ export async function GET(request: NextRequest) {
       errors: [] as string[],
     };
 
-    for (const recording of recordings) {
-      try {
-        const result = await convertRecordingIntoAiInsights(
-          recording.id,
-          false,
-          recording.recallBotId ?? undefined,
-        );
+    const CONCURRENCY = 3;
+    for (let i = 0; i < recordings.length; i += CONCURRENCY) {
+      const batch = recordings.slice(i, i + CONCURRENCY);
+      const batchResults = await Promise.allSettled(
+        batch.map(async (recording) => {
+          const result = await convertRecordingIntoAiInsights(
+            recording.id,
+            false,
+            recording.recallBotId ?? undefined,
+          );
 
-        if (result.success) {
-          await RecordingsQueries.resetTranscriptionRetry(recording.id);
-          results.succeeded++;
+          if (result.success) {
+            await RecordingsQueries.resetTranscriptionRetry(recording.id);
+            return { recordingId: recording.id, success: true };
+          }
+          return {
+            recordingId: recording.id,
+            success: false,
+            error: result.error,
+          };
+        }),
+      );
+
+      for (const [idx, settled] of batchResults.entries()) {
+        if (settled.status === "fulfilled") {
+          if (settled.value.success) {
+            results.succeeded++;
+          } else {
+            results.failed++;
+            results.errors.push(
+              `${settled.value.recordingId}: ${settled.value.error}`,
+            );
+          }
         } else {
+          const recording = batch[idx];
           results.failed++;
-          results.errors.push(`${recording.id}: ${result.error}`);
-        }
-      } catch (error) {
-        results.failed++;
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        results.errors.push(`${recording.id}: ${errorMsg}`);
+          const errorMsg =
+            settled.reason instanceof Error
+              ? settled.reason.message
+              : String(settled.reason);
+          results.errors.push(`${recording.id}: ${errorMsg}`);
 
-        Sentry.withScope((scope) => {
-          scope.setTags({
-            component: "cron-retry-failed-transcriptions",
+          Sentry.withScope((scope) => {
+            scope.setTags({
+              component: "cron-retry-failed-transcriptions",
+            });
+            scope.setContext("recording", {
+              recording_id: recording.id,
+              retry_count: recording.transcriptionRetryCount,
+            });
+            Sentry.captureException(settled.reason);
           });
-          scope.setContext("recording", {
-            recording_id: recording.id,
-            retry_count: recording.transcriptionRetryCount,
-          });
-          Sentry.captureException(error);
-        });
+        }
       }
     }
 

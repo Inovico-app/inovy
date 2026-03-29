@@ -257,15 +257,10 @@ export class GdprDeletionService {
     userId: string,
     organizationId: string,
   ): Promise<void> {
-    // Get all recordings (both active and archived) owned by user
-    const allRecordings =
-      await RecordingsQueries.selectRecordingsByOrganization(
-        organizationId,
-        {},
-      );
-
-    const ownedRecordings = allRecordings.filter(
-      (r) => r.createdById === userId,
+    // Get recordings owned by user directly via DB filter
+    const ownedRecordings = await RecordingsQueries.selectRecordingsByCreator(
+      organizationId,
+      userId,
     );
 
     const storage = await getStorageProvider();
@@ -322,11 +317,15 @@ export class GdprDeletionService {
       anonymizedId,
     );
 
+    // Batch fetch all recordings and insights at once to avoid N+1
+    const [allRecordings, allInsights] = await Promise.all([
+      RecordingsQueries.selectRecordingsByIds(recordingIds),
+      AIInsightsQueries.getInsightsByRecordingIds(recordingIds),
+    ]);
+
     // Anonymize transcription text
-    for (const recordingId of recordingIds) {
-      const recording =
-        await RecordingsQueries.selectRecordingById(recordingId);
-      if (recording && recording.transcriptionText) {
+    for (const recording of allRecordings) {
+      if (recording.transcriptionText) {
         const anonymizedText = this.anonymizeText(
           recording.transcriptionText,
           userEmail,
@@ -334,31 +333,28 @@ export class GdprDeletionService {
           anonymizedId,
         );
         await RecordingsQueries.anonymizeTranscriptionText(
-          recordingId,
+          recording.id,
           anonymizedText,
         );
       }
+    }
 
-      // Anonymize AI insights (speaker names)
-      const insights =
-        await AIInsightsQueries.getInsightsByRecordingId(recordingId);
-
-      for (const insight of insights) {
-        if (insight.speakerNames) {
-          const speakerNames = insight.speakerNames as Record<string, string>;
-          const anonymizedSpeakerNames: Record<string, string> = {};
-          for (const [key, name] of Object.entries(speakerNames)) {
-            if (userName && (name === userName || name.includes(userName))) {
-              anonymizedSpeakerNames[key] = anonymizedId;
-            } else {
-              anonymizedSpeakerNames[key] = name;
-            }
+    // Anonymize AI insights (speaker names)
+    for (const insight of allInsights) {
+      if (insight.speakerNames) {
+        const speakerNames = insight.speakerNames as Record<string, string>;
+        const anonymizedSpeakerNames: Record<string, string> = {};
+        for (const [key, name] of Object.entries(speakerNames)) {
+          if (userName && (name === userName || name.includes(userName))) {
+            anonymizedSpeakerNames[key] = anonymizedId;
+          } else {
+            anonymizedSpeakerNames[key] = name;
           }
-          await AIInsightsQueries.anonymizeSpeakerNames(
-            insight.id,
-            anonymizedSpeakerNames,
-          );
         }
+        await AIInsightsQueries.anonymizeSpeakerNames(
+          insight.id,
+          anonymizedSpeakerNames,
+        );
       }
     }
 
@@ -376,12 +372,10 @@ export class GdprDeletionService {
     userId: string,
     organizationId: string,
   ): Promise<void> {
-    const userTasks = await TasksQueries.getTasksByOrganization(
+    const createdTasks = await TasksQueries.getTasksByCreator(
       organizationId,
-      {},
+      userId,
     );
-
-    const createdTasks = userTasks.filter((t) => t.createdById === userId);
 
     if (createdTasks.length === 0) return;
 
@@ -408,16 +402,13 @@ export class GdprDeletionService {
     userId: string,
     organizationId: string,
   ): Promise<void> {
-    // Get all recordings owned by user to find their summaries
-    const allRecordings =
-      await RecordingsQueries.selectRecordingsByOrganization(
-        organizationId,
-        {},
-      );
+    // Get recordings owned by user directly via DB filter
+    const ownedRecordings = await RecordingsQueries.selectRecordingsByCreator(
+      organizationId,
+      userId,
+    );
 
-    const ownedRecordingIds = allRecordings
-      .filter((r) => r.createdById === userId)
-      .map((r) => r.id);
+    const ownedRecordingIds = ownedRecordings.map((r) => r.id);
 
     if (ownedRecordingIds.length === 0) return;
 

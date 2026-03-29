@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { db } from "../db";
 import { users } from "../db/schema/auth";
 import { projects } from "../db/schema/projects";
@@ -302,12 +302,12 @@ export class ProjectQueries {
       }
     }
 
-    const result = await db
-      .select({ id: projects.id })
+    const [row] = await db
+      .select({ value: count() })
       .from(projects)
       .where(and(...whereConditions));
 
-    return result.length;
+    return Number(row?.value ?? 0);
   }
 
   /**
