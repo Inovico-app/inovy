@@ -9,10 +9,11 @@ import { ProjectTeamFilter } from "@/features/projects/components/project-team-f
 import { ProjectTabs } from "@/features/projects/components/project-tabs";
 import { getCreatorDisplayName } from "@/lib/formatters/display-formatters";
 import { filterProjectsBySearch } from "@/lib/filters/project-filters";
+import { logger } from "@/lib/logger";
 import type { AllowedStatus } from "@/server/data-access/projects.queries";
 import type { ProjectWithRecordingCountDto } from "@/server/dto/project.dto";
 import { resolveAuthContext } from "@/lib/auth-context";
-import { ProjectService } from "@/server/services/project.service";
+import { getCachedProjectsWithRecordingCount } from "@/server/cache/project.cache";
 import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
 import {
   FileTextIcon,
@@ -48,28 +49,23 @@ async function ProjectsList({
     );
   }
 
-  const projectsResult =
-    await ProjectService.getProjectsByOrganizationWithRecordingCount(
-      authResult.value,
+  let allProjects: ProjectWithRecordingCountDto[];
+  try {
+    allProjects = await getCachedProjectsWithRecordingCount(
+      authResult.value.organizationId,
       status,
+      {
+        userTeamIds: authResult.value.userTeamIds,
+        user: authResult.value.user,
+      },
     );
-
-  if (projectsResult.isErr()) {
-    return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="text-center">
-          <p className="text-red-500">
-            {t("failedToLoad", {
-              error: projectsResult.error?.message ?? "Unknown error",
-            })}
-          </p>
-        </div>
-      </div>
-    );
+  } catch (error) {
+    logger.error("Failed to fetch projects", { error });
+    allProjects = [];
   }
 
   // Filter projects by search query
-  let projects = filterProjectsBySearch(projectsResult.value, searchQuery);
+  let projects = filterProjectsBySearch(allProjects, searchQuery);
 
   // Filter by team
   if (teamFilter === "__everyone__") {

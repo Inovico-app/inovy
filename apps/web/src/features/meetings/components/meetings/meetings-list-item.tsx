@@ -21,6 +21,7 @@ import {
 import type { BotSeriesSubscription } from "@/server/db/schema/bot-series-subscriptions";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
+import { memo } from "react";
 import { useTranslations } from "next-intl";
 import {
   CalendarIcon,
@@ -37,7 +38,7 @@ interface MeetingsListItemProps {
   onSubscriptionChange?: () => void;
 }
 
-export function MeetingsListItem({
+export const MeetingsListItem = memo(function MeetingsListItem({
   meeting,
   onMeetingClick,
   subscriptions,
@@ -179,4 +180,4 @@ export function MeetingsListItem({
       </CardContent>
     </Card>
   );
-}
+});

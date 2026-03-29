@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   jsonb,
   pgTable,
   text,
@@ -27,27 +28,37 @@ export const notificationTypeEnum = [
 ] as const;
 export type NotificationType = (typeof notificationTypeEnum)[number];
 
-export const notifications = pgTable("notifications", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  recordingId: uuid("recording_id").references(() => recordings.id, {
-    onDelete: "set null",
-    onUpdate: "no action",
-  }), // Nullable for bot_consent_request notifications; detach when recording is deleted
-  projectId: uuid("project_id")
-    .notNull()
-    .references(() => projects.id),
-  userId: text("user_id").notNull(), // Better Auth user ID
-  organizationId: text("organization_id").notNull(), // Better Auth organization ID
-  type: text("type", { enum: notificationTypeEnum }).notNull(),
-  title: text("title").notNull(),
-  message: text("message").notNull(),
-  isRead: boolean("is_read").notNull().default(false),
-  metadata: jsonb("metadata"), // Additional context (error details, counts, etc.)
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  readAt: timestamp("read_at", { withTimezone: true }),
-});
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    recordingId: uuid("recording_id").references(() => recordings.id, {
+      onDelete: "set null",
+      onUpdate: "no action",
+    }), // Nullable for bot_consent_request notifications; detach when recording is deleted
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id),
+    userId: text("user_id").notNull(), // Better Auth user ID
+    organizationId: text("organization_id").notNull(), // Better Auth organization ID
+    type: text("type", { enum: notificationTypeEnum }).notNull(),
+    title: text("title").notNull(),
+    message: text("message").notNull(),
+    isRead: boolean("is_read").notNull().default(false),
+    metadata: jsonb("metadata"), // Additional context (error details, counts, etc.)
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+  },
+  (table) => ({
+    userOrgReadIdx: index("notifications_user_org_read_idx").on(
+      table.userId,
+      table.organizationId,
+      table.isRead,
+    ),
+  }),
+);
 
 export type Notification = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;

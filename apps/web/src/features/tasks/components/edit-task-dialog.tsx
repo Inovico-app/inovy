@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { TaskDescriptionEditor } from "./task-description-editor";
+import { TaskDescriptionEditor } from "./task-description-editor-lazy";
 import { TaskTagSelector } from "./task-tag-selector";
 import { TaskVersionHistoryDialog } from "./task-version-history-dialog";
 import { useOrganizationMembers } from "../hooks/use-organization-members";

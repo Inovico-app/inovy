@@ -1,17 +1,23 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { updateSummary, type UpdateSummaryInput } from "../actions/update-summary";
+import { queryKeys } from "@/lib/query-keys";
+import {
+  updateSummary,
+  type UpdateSummaryInput,
+} from "../actions/update-summary";
 
 interface UseUpdateSummaryMutationOptions {
   onSuccess?: () => void;
 }
 
 export function useUpdateSummaryMutation(
-  options?: UseUpdateSummaryMutationOptions
+  options?: UseUpdateSummaryMutationOptions,
 ) {
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   return useMutation({
     mutationFn: async (input: UpdateSummaryInput) => {
@@ -21,23 +27,22 @@ export function useUpdateSummaryMutation(
       }
       return result.data;
     },
-    onSuccess: (data, variables) => {
-      // Invalidate queries (cache invalidation happens in server action)
+    onSuccess: (_data, variables) => {
+      // Invalidate summary detail (has a real useQuery consumer)
       queryClient.invalidateQueries({
-        queryKey: ["recording", variables.recordingId],
+        queryKey: queryKeys.summaries.detail(variables.recordingId),
       });
-      queryClient.invalidateQueries({
-        queryKey: ["summary", variables.recordingId],
-      });
+
+      // Refresh RSC data — recording detail is server-rendered, not RQ
+      router.refresh();
 
       toast.success("Summary updated successfully");
       options?.onSuccess?.();
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : "Failed to update summary"
+        error instanceof Error ? error.message : "Failed to update summary",
       );
     },
   });
 }
-

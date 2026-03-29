@@ -115,6 +115,11 @@ export function tagsFor(entity: CacheEntity, refs: CacheRefs = {}): string[] {
     case "notification":
       if (refs.userId && refs.organizationId) {
         tags.push(CacheTags.notifications(refs.userId, refs.organizationId));
+      }
+      break;
+
+    case "notificationUnreadCount":
+      if (refs.userId && refs.organizationId) {
         tags.push(
           CacheTags.notificationUnreadCount(refs.userId, refs.organizationId),
         );

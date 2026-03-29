@@ -17,10 +17,13 @@ import {
   PaperclipIcon,
   XIcon,
 } from "lucide-react";
-import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
+import type { ComponentProps, HTMLAttributes } from "react";
 import {
+  Children,
   createContext,
+  isValidElement,
   memo,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -116,8 +119,6 @@ type MessageBranchContextType = {
   totalBranches: number;
   goToPrevious: () => void;
   goToNext: () => void;
-  branches: ReactElement[];
-  setBranches: (branches: ReactElement[]) => void;
 };
 
 const MessageBranchContext = createContext<MessageBranchContextType | null>(
@@ -137,51 +138,70 @@ const useMessageBranch = () => {
 };
 
 export type MessageBranchProps = HTMLAttributes<HTMLDivElement> & {
+  branchCount: number;
   defaultBranch?: number;
   onBranchChange?: (branchIndex: number) => void;
 };
 
 export const MessageBranch = ({
+  branchCount,
   defaultBranch = 0,
   onBranchChange,
   className,
+  children,
   ...props
 }: MessageBranchProps) => {
-  const [currentBranch, setCurrentBranch] = useState(defaultBranch);
-  const [branches, setBranches] = useState<ReactElement[]>([]);
+  const [currentBranch, setCurrentBranch] = useState(
+    Math.min(defaultBranch, Math.max(0, branchCount - 1)),
+  );
 
-  const handleBranchChange = (newBranch: number) => {
-    setCurrentBranch(newBranch);
-    onBranchChange?.(newBranch);
-  };
+  const totalBranches = branchCount;
 
-  const goToPrevious = () => {
-    const newBranch =
-      currentBranch > 0 ? currentBranch - 1 : branches.length - 1;
+  useEffect(() => {
+    setCurrentBranch((prev) =>
+      prev >= totalBranches ? Math.max(0, totalBranches - 1) : prev,
+    );
+  }, [totalBranches]);
+
+  const handleBranchChange = useCallback(
+    (newBranch: number) => {
+      const clamped = Math.max(0, Math.min(newBranch, totalBranches - 1));
+      setCurrentBranch(clamped);
+      onBranchChange?.(clamped);
+    },
+    [onBranchChange, totalBranches],
+  );
+
+  const goToPrevious = useCallback(() => {
+    if (totalBranches <= 1) return;
+    const newBranch = currentBranch > 0 ? currentBranch - 1 : totalBranches - 1;
     handleBranchChange(newBranch);
-  };
+  }, [currentBranch, totalBranches, handleBranchChange]);
 
-  const goToNext = () => {
-    const newBranch =
-      currentBranch < branches.length - 1 ? currentBranch + 1 : 0;
+  const goToNext = useCallback(() => {
+    if (totalBranches <= 1) return;
+    const newBranch = currentBranch < totalBranches - 1 ? currentBranch + 1 : 0;
     handleBranchChange(newBranch);
-  };
+  }, [currentBranch, totalBranches, handleBranchChange]);
 
-  const contextValue: MessageBranchContextType = {
-    currentBranch,
-    totalBranches: branches.length,
-    goToPrevious,
-    goToNext,
-    branches,
-    setBranches,
-  };
+  const contextValue = useMemo<MessageBranchContextType>(
+    () => ({
+      currentBranch,
+      totalBranches,
+      goToPrevious,
+      goToNext,
+    }),
+    [currentBranch, totalBranches, goToPrevious, goToNext],
+  );
 
   return (
     <MessageBranchContext.Provider value={contextValue}>
       <div
         className={cn("grid w-full gap-2 [&>div]:pb-0", className)}
         {...props}
-      />
+      >
+        {children}
+      </div>
     </MessageBranchContext.Provider>
   );
 };
@@ -192,18 +212,8 @@ export const MessageBranchContent = ({
   children,
   ...props
 }: MessageBranchContentProps) => {
-  const { currentBranch, setBranches, branches } = useMessageBranch();
-  const childrenArray = useMemo(
-    () => (Array.isArray(children) ? children : [children]),
-    [children],
-  );
-
-  // Use useEffect to update branches when they change
-  useEffect(() => {
-    if (branches.length !== childrenArray.length) {
-      setBranches(childrenArray);
-    }
-  }, [childrenArray, branches, setBranches]);
+  const { currentBranch } = useMessageBranch();
+  const childrenArray = useMemo(() => Children.toArray(children), [children]);
 
   return childrenArray.map((branch, index) => (
     <div
@@ -211,7 +221,7 @@ export const MessageBranchContent = ({
         "grid gap-2 overflow-hidden [&>div]:pb-0",
         index === currentBranch ? "block" : "hidden",
       )}
-      key={branch.key}
+      key={isValidElement(branch) ? branch.key : index}
       {...props}
     >
       {branch}

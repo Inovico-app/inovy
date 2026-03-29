@@ -9,21 +9,18 @@ import { PiiHandlingSection } from "@/features/security/components/pii-handling-
 import { SecurityHero } from "@/features/security/components/security-hero";
 import { SubProcessorsSection } from "@/features/security/components/sub-processors-section";
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("security.metadata");
-
-  return {
-    title: t("title"),
-    description: t("description"),
-    openGraph: {
-      title: t("title"),
-      description: t("description"),
-      type: "website",
-    },
-  };
-}
+export const metadata: Metadata = {
+  title: "Trust & Security",
+  description:
+    "Learn how Inovy protects your data with EU-compliant infrastructure, end-to-end encryption, and enterprise-grade security controls.",
+  openGraph: {
+    title: "Trust & Security",
+    description:
+      "Learn how Inovy protects your data with EU-compliant infrastructure, end-to-end encryption, and enterprise-grade security controls.",
+    type: "website",
+  },
+};
 
 export default function SecurityPage() {
   return (

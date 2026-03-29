@@ -1,6 +1,7 @@
 import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import { ProjectQueries } from "../data-access/projects.queries";
+import type { AllowedStatus } from "../data-access/projects.queries";
 import type { BetterAuthUser } from "@/lib/auth";
 
 /**
@@ -51,4 +52,25 @@ export async function getCachedUserProjects(
     id: project.id,
     name: project.name,
   }));
+}
+
+/**
+ * Get projects with recording counts for an organization (cached)
+ * Auth/team access must be verified by the caller before invoking.
+ * @param orgCode - Organization code/ID
+ * @param status - Project status filter (default: "active")
+ * @param teamContext - Optional team context for filtering by team visibility
+ */
+export async function getCachedProjectsWithRecordingCount(
+  orgCode: string,
+  status: AllowedStatus = "active",
+  teamContext?: TeamContextOptions,
+) {
+  "use cache";
+  cacheTag(...tagsFor("project", { organizationId: orgCode }));
+
+  return ProjectQueries.findByOrganizationWithRecordingCount(
+    { organizationId: orgCode, status },
+    teamContext,
+  );
 }

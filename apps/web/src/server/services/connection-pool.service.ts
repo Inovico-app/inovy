@@ -20,7 +20,7 @@ import OpenAI from "openai";
 // This pool uses faster retries (1s, 2s, 4s) for API calls that should fail fast
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff: 1s, 2s, 4s
-const POOL_SIZE = 5;
+const POOL_SIZE = 1;
 
 interface PooledClient<T> {
   client: T;

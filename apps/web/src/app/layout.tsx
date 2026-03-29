@@ -1,21 +1,26 @@
 import { AriaLiveRegion } from "@/components/aria-live-region";
 import { CookieConsent } from "@/components/cookie-consent";
+import { cn } from "@/lib/utils";
 import { BetterAuthProvider } from "@/providers/AuthProvider";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 import { SpeedInsights as VercelSpeedInsights } from "@vercel/speed-insights/next";
+import { LazyMotion, domAnimation } from "motion/react";
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Geist } from "next/font/google";
-import { NuqsAdapter } from "nuqs/adapters/next/app";
-import { Toaster } from "sonner";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
+import { Geist, JetBrains_Mono } from "next/font/google";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Suspense } from "react";
+import { Toaster } from "sonner";
 import "../index.css";
-import { cn } from "@/lib/utils";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
+const geist = Geist({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 const jetBrainsMono = JetBrains_Mono({
   variable: "--font-mono",
@@ -24,9 +29,21 @@ const jetBrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+function resolveMetadataBase(): URL {
+  const fallback = "https://app.inovico.nl";
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!envUrl) return new URL(fallback);
+  try {
+    return new URL(envUrl);
+  } catch {
+    return new URL(fallback);
+  }
+}
+
 export const metadata: Metadata = {
-  title: "inovy",
-  description: "inovy",
+  metadataBase: resolveMetadataBase(),
+  title: { default: "Inovy", template: "%s | Inovy" },
+  description: "EU-compliant meeting intelligence platform",
 };
 
 export const viewport: Viewport = {
@@ -68,9 +85,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn("font-sans", geist.variable)}
     >
-      <body
-        className={`${geist.variable} ${jetBrainsMono.variable} antialiased`}
-      >
+      <body className={`${jetBrainsMono.variable} antialiased`}>
         <AriaLiveRegion />
         <BetterAuthProvider>
           <QueryProvider>
@@ -78,11 +93,13 @@ export default function RootLayout({
               <Suspense>
                 <IntlProvider>
                   <ThemeProvider>
-                    <VercelAnalytics />
-                    <VercelSpeedInsights />
-                    {children}
-                    <CookieConsent />
-                    <Toaster richColors />
+                    <LazyMotion features={domAnimation}>
+                      <VercelAnalytics />
+                      <VercelSpeedInsights />
+                      {children}
+                      <CookieConsent />
+                      <Toaster richColors />
+                    </LazyMotion>
                   </ThemeProvider>
                 </IntlProvider>
               </Suspense>

@@ -108,7 +108,6 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: "Internal server error",
-        details: error instanceof Error ? error.message : "Unknown error",
         durationMs: duration,
         timestamp: new Date().toISOString(),
       },

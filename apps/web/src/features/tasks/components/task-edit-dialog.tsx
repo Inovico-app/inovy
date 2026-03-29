@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { TaskDto } from "@/server/dto/task.dto";
-import { useUpdateTaskMutation } from "../hooks/use-update-task-mutation";
+import { useUpdateTaskMetadataMutation } from "../hooks/use-update-task-metadata-mutation";
 import { useOrganizationMembers } from "../hooks/use-organization-members";
 import { Pencil, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -62,7 +62,7 @@ export function TaskEditDialog({ task, trigger }: TaskEditDialogProps) {
     cancelled: t("statusCancelled"),
   } as const;
 
-  const updateMutation = useUpdateTaskMutation();
+  const updateMutation = useUpdateTaskMetadataMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

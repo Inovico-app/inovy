@@ -6,7 +6,7 @@ import { formatFileSizePrecise } from "@/lib/formatters/file-size-formatters";
 import { ClockIcon, FileAudioIcon, FileVideoIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import {
   Card,
@@ -27,7 +27,7 @@ interface RecordingCardWithStatusProps {
   onSelectionChange?: (recordingId: string, selected: boolean) => void;
 }
 
-export function RecordingCardWithStatus({
+export const RecordingCardWithStatus = memo(function RecordingCardWithStatus({
   recording,
   selectable = false,
   isSelected = false,
@@ -157,4 +157,4 @@ export function RecordingCardWithStatus({
       {cardContent}
     </Link>
   );
-}
+});

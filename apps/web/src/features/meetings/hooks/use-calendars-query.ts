@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { getCalendars } from "../actions/get-calendars";
 
 export interface Calendar {
@@ -15,7 +16,7 @@ export interface Calendar {
  */
 export function useCalendarsQuery(enabled = true) {
   return useQuery({
-    queryKey: ["calendars"],
+    queryKey: queryKeys.calendars.all,
     queryFn: async () => {
       const result = await getCalendars();
 

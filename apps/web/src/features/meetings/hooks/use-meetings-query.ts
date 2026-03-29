@@ -7,6 +7,7 @@ import type { CalendarEvent } from "@/server/services/calendar/types";
 import type { ProviderType } from "@/server/services/calendar/calendar-provider-factory";
 import { getPaddedMonthRange } from "../lib/calendar-utils";
 import { startOfMonth, addMonths } from "date-fns";
+import { queryKeys } from "@/lib/query-keys";
 
 interface UseMeetingsQueryOptions {
   month: Date;
@@ -52,7 +53,7 @@ export function useMeetingsQuery({
   const monthKey = monthStart.getTime();
 
   const query = useQuery({
-    queryKey: ["meetings", monthKey],
+    queryKey: queryKeys.meetings.byMonth(monthKey),
     queryFn: () => fetchMeetingsForRange(start, end),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     enabled,
@@ -70,7 +71,7 @@ export function useMeetingsQuery({
     const nextMonthKey = startOfMonth(nextMonth).getTime();
 
     queryClient.prefetchQuery({
-      queryKey: ["meetings", nextMonthKey],
+      queryKey: queryKeys.meetings.byMonth(nextMonthKey),
       queryFn: () =>
         fetchMeetingsForRange(nextMonthRange.start, nextMonthRange.end),
       staleTime: 5 * 60 * 1000,
@@ -82,7 +83,7 @@ export function useMeetingsQuery({
     const prevMonthKey = startOfMonth(prevMonth).getTime();
 
     queryClient.prefetchQuery({
-      queryKey: ["meetings", prevMonthKey],
+      queryKey: queryKeys.meetings.byMonth(prevMonthKey),
       queryFn: () =>
         fetchMeetingsForRange(prevMonthRange.start, prevMonthRange.end),
       staleTime: 5 * 60 * 1000,

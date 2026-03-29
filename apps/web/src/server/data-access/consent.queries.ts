@@ -16,7 +16,7 @@ export class ConsentQueries {
    * Create a new consent participant record
    */
   static async createConsentParticipant(
-    data: NewConsentParticipant
+    data: NewConsentParticipant,
   ): Promise<ConsentParticipant> {
     const [participant] = await db
       .insert(consentParticipants)
@@ -34,7 +34,7 @@ export class ConsentQueries {
    */
   static async getConsentParticipant(
     recordingId: string,
-    participantEmail: string
+    participantEmail: string,
   ): Promise<ConsentParticipant | null> {
     const [participant] = await db
       .select()
@@ -42,8 +42,8 @@ export class ConsentQueries {
       .where(
         and(
           eq(consentParticipants.recordingId, recordingId),
-          eq(consentParticipants.participantEmail, participantEmail)
-        )
+          eq(consentParticipants.participantEmail, participantEmail),
+        ),
       )
       .limit(1);
 
@@ -54,7 +54,7 @@ export class ConsentQueries {
    * Get all consent participants for a recording
    */
   static async getConsentParticipantsByRecordingId(
-    recordingId: string
+    recordingId: string,
   ): Promise<ConsentParticipant[]> {
     return db
       .select()
@@ -70,7 +70,7 @@ export class ConsentQueries {
     recordingId: string,
     participantEmail: string,
     status: "pending" | "granted" | "revoked" | "expired",
-    revokedAt?: Date
+    revokedAt?: Date,
   ): Promise<ConsentParticipant | null> {
     const updateData: Partial<ConsentParticipant> = {
       consentStatus: status,
@@ -89,8 +89,8 @@ export class ConsentQueries {
       .where(
         and(
           eq(consentParticipants.recordingId, recordingId),
-          eq(consentParticipants.participantEmail, participantEmail)
-        )
+          eq(consentParticipants.participantEmail, participantEmail),
+        ),
       )
       .returning();
 
@@ -105,16 +105,14 @@ export class ConsentQueries {
     consentGiven: boolean,
     consentGivenBy: string,
     consentGivenAt?: Date,
-    consentRevokedAt?: Date
+    consentRevokedAt?: Date,
   ): Promise<void> {
     await db
       .update(recordings)
       .set({
         consentGiven,
         consentGivenBy,
-        consentGivenAt: consentGiven
-          ? consentGivenAt ?? new Date()
-          : null,
+        consentGivenAt: consentGiven ? (consentGivenAt ?? new Date()) : null,
         consentRevokedAt,
         updatedAt: new Date(),
       })
@@ -130,9 +128,8 @@ export class ConsentQueries {
     pending: number;
     revoked: number;
   }> {
-    const participants = await this.getConsentParticipantsByRecordingId(
-      recordingId
-    );
+    const participants =
+      await this.getConsentParticipantsByRecordingId(recordingId);
 
     return {
       total: participants.length,
@@ -157,8 +154,9 @@ export class ConsentQueries {
    */
   static async anonymizeByRecordingIds(
     recordingIds: string[],
+    targetUserId: string,
     anonymizedEmail: string,
-    anonymizedName: string
+    anonymizedName: string,
   ): Promise<void> {
     if (recordingIds.length === 0) return;
 
@@ -170,7 +168,11 @@ export class ConsentQueries {
         userId: null,
         updatedAt: new Date(),
       })
-      .where(inArray(consentParticipants.recordingId, recordingIds));
+      .where(
+        and(
+          inArray(consentParticipants.recordingId, recordingIds),
+          eq(consentParticipants.userId, targetUserId),
+        ),
+      );
   }
 }
-

@@ -23,7 +23,7 @@ import { useCopyToClipboard } from "../hooks/use-copy-to-clipboard";
 import { EditSummaryDialog } from "./edit-summary-dialog";
 import { SummaryVersionHistoryDialog } from "./summary-version-history-dialog";
 import { TimestampButton } from "./timestamp-button";
-import { UserNotesEditor } from "./user-notes-editor";
+import { UserNotesEditor } from "./user-notes-editor-lazy";
 import { CopyBlockButton } from "./copy-block-button";
 import {
   formatBlockAsMarkdown,

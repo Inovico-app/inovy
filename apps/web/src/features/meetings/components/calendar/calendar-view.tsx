@@ -8,7 +8,7 @@ import type {
 import { getVisibleDates } from "@/features/meetings/lib/calendar-utils";
 import { useCalendarViewState } from "@/features/meetings/hooks/use-calendar-view-state";
 import { useTranslations } from "next-intl";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { Suspense, useMemo, useState } from "react";
 import { MeetingDetailsModal } from "../meeting-details-modal";
 import { MeetingsList } from "../meetings/meetings-list";
@@ -16,6 +16,13 @@ import { CalendarGrid } from "./calendar-grid";
 import { CalendarHeader } from "./calendar-header";
 import { CalendarTimeGrid } from "./calendar-time-grid";
 import type { MeetingBotStatusFilter } from "@/features/meetings/lib/calendar-utils";
+
+const VIEW_TRANSITION = {
+  initial: { opacity: 0, y: 10 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -10 },
+  transition: { duration: 0.3, ease: "easeOut" as const },
+};
 
 interface CalendarViewProps {
   initialDate?: Date;
@@ -115,13 +122,7 @@ function CalendarViewInner({
       <div ref={viewContainerRef} className="relative min-h-[400px]">
         <AnimatePresence mode="wait">
           {effectiveView === "month" && (
-            <motion.div
-              key="month-view"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
+            <m.div key="month-view" {...VIEW_TRANSITION}>
               {isLoading ? (
                 loadingPlaceholder
               ) : (
@@ -132,17 +133,11 @@ function CalendarViewInner({
                   onMeetingClick={handleMeetingClick}
                 />
               )}
-            </motion.div>
+            </m.div>
           )}
 
           {effectiveView === "list" && (
-            <motion.div
-              key="list-view"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
+            <m.div key="list-view" {...VIEW_TRANSITION}>
               {isLoading ? (
                 loadingPlaceholder
               ) : loadMoreResult ? (
@@ -159,17 +154,11 @@ function CalendarViewInner({
                   onMeetingClick={handleMeetingClick}
                 />
               ) : null}
-            </motion.div>
+            </m.div>
           )}
 
           {isTimeGridView(effectiveView) && (
-            <motion.div
-              key={`${effectiveView}-view`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
+            <m.div key={`${effectiveView}-view`} {...VIEW_TRANSITION}>
               {isLoading ? (
                 loadingPlaceholder
               ) : (
@@ -179,7 +168,7 @@ function CalendarViewInner({
                   onMeetingClick={handleMeetingClick}
                 />
               )}
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </div>

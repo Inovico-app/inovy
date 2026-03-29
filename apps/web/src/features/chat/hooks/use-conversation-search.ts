@@ -1,14 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { searchConversationsAction } from "../actions/conversation-history";
 import { useState, useCallback, useEffect, useRef } from "react";
 
 export function useConversationSearch(
   context?: "project" | "organization",
-  projectId?: string
+  projectId?: string,
 ) {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
 
   // Debounce search query
   const debouncedSetQuery = useCallback((value: string) => {
@@ -34,7 +37,11 @@ export function useConversationSearch(
   };
 
   const searchQuery = useQuery({
-    queryKey: ["conversation-search", debouncedQuery, context, projectId],
+    queryKey: queryKeys.conversations.search(
+      debouncedQuery,
+      context,
+      projectId,
+    ),
     queryFn: async () => {
       if (!debouncedQuery.trim()) {
         return [];
@@ -55,4 +62,3 @@ export function useConversationSearch(
     ...searchQuery,
   };
 }
-

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { getAvatarColor, getInitials } from "@/lib/email-chip-utils";
 import { cn } from "@/lib/utils";
 import { XIcon } from "lucide-react";
-import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { useRef } from "react";
 
 const defaultRemoveLabel = (email: string) => `Remove ${email}`;
@@ -62,13 +62,12 @@ export function EmailChipInput({
           "min-h-[3.5rem] w-full rounded-lg border bg-background px-3 py-2",
           "transition-[border-color,box-shadow] duration-150",
           "focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]",
-          error && "border-destructive focus-within:ring-destructive/20"
+          error && "border-destructive focus-within:ring-destructive/20",
         )}
         onClick={handleContainerClick}
         role="presentation"
       >
         <div className="flex flex-wrap items-center gap-1.5">
-          <LazyMotion features={domAnimation}>
           <AnimatePresence mode="popLayout">
             {emails.map((email, index) => (
               <m.div
@@ -86,7 +85,7 @@ export function EmailChipInput({
                   <span
                     className={cn(
                       "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold leading-none",
-                      getAvatarColor(index)
+                      getAvatarColor(index),
                     )}
                     aria-hidden="true"
                   >
@@ -106,7 +105,6 @@ export function EmailChipInput({
               </m.div>
             ))}
           </AnimatePresence>
-          </LazyMotion>
 
           <Input
             ref={inputRef}
@@ -130,7 +128,6 @@ export function EmailChipInput({
       </div>
 
       {/* Error message */}
-      <LazyMotion features={domAnimation}>
       <AnimatePresence>
         {error && (
           <m.p
@@ -145,7 +142,6 @@ export function EmailChipInput({
           </m.p>
         )}
       </AnimatePresence>
-      </LazyMotion>
 
       {/* Hint text */}
       <p id="invite-hint" className="text-sm text-muted-foreground">

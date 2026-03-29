@@ -1,11 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { getTaskHistory } from "../actions/get-task-history";
 
 export function useTaskHistory(taskId: string) {
   return useQuery({
-    queryKey: ["task-history", taskId],
+    queryKey: queryKeys.taskHistory(taskId),
     queryFn: async () => {
       const result = await getTaskHistory({ taskId });
       if (result.serverError || !result.data) {
@@ -16,4 +17,3 @@ export function useTaskHistory(taskId: string) {
     enabled: !!taskId,
   });
 }
-

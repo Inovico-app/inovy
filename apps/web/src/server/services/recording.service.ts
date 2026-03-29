@@ -140,15 +140,21 @@ export class RecordingService {
     });
 
     try {
-      const recording = await RecordingsQueries.selectRecordingById(id);
+      // Single query with JOIN to get recording + project teamId in one round-trip
+      const result = await RecordingsQueries.selectRecordingByIdWithTeam(
+        id,
+        auth.organizationId,
+      );
 
-      if (!recording) {
+      if (!result) {
         logger.warn("Recording not found", {
           component: "RecordingService.getRecordingById",
           recordingId: id,
         });
         return ok(null);
       }
+
+      const { teamId, ...recording } = result;
 
       // Always enforce organization-level access isolation
       assertOrganizationAccess(
@@ -159,20 +165,8 @@ export class RecordingService {
 
       // Enforce team-level access isolation via the recording's project
       if (recording.projectId) {
-        const project = await ProjectQueries.findById(
-          recording.projectId,
-          recording.organizationId,
-        );
-        if (!project) {
-          return err(
-            ActionErrors.notFound(
-              "Recording",
-              "RecordingService.getRecordingById",
-            ),
-          );
-        }
         assertTeamAccess(
-          project.teamId,
+          teamId,
           auth.userTeamIds,
           auth.user,
           "RecordingService.getRecordingById",

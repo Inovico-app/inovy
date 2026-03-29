@@ -5,7 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 
 /**
  * React Query hook for polling unread notification count
- * Polls every 15 seconds in the background
+ * Polls every 60 seconds when the window is focused (no background polling).
+ * Data is considered stale after 30 seconds.
  */
 export function useUnreadCountQuery() {
   return useQuery({
@@ -20,9 +21,8 @@ export function useUnreadCountQuery() {
       const data = await response.json();
       return data.count as number;
     },
-    refetchInterval: 15000, // Poll every 15 seconds
-    refetchIntervalInBackground: true, // Continue polling when window is not focused
-    staleTime: 10000, // Consider data stale after 10 seconds
+    refetchInterval: 60000, // Poll every 60 seconds
+    refetchIntervalInBackground: false, // Only poll when window is focused
+    staleTime: 30000, // Consider data stale after 30 seconds
   });
 }
-

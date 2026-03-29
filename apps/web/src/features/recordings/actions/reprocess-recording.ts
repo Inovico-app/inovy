@@ -8,9 +8,9 @@ import {
   resultToActionResponse,
 } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
+import { invalidateFor } from "@/lib/cache";
 import { RecordingService } from "@/server/services/recording.service";
 import { ReprocessingService } from "@/server/services/reprocessing.service";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 const reprocessRecordingSchema = z.object({
@@ -80,11 +80,11 @@ export const reprocessRecordingAction = authorizedActionClient
 
     const reprocessData = resultToActionResponse(reprocessResult);
 
-    // Revalidate the recording detail page
-    revalidatePath(
-      `/projects/${recording.projectId}/recordings/${recordingId}`,
-    );
-    revalidatePath(`/projects/${recording.projectId}`);
+    // Invalidate recording caches using tag-based invalidation
+    invalidateFor("recording", "reprocess", {
+      organizationId,
+      input: { recordingId, projectId: recording.projectId },
+    });
 
     return {
       success: true,

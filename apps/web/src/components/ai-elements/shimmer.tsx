@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import {
   type CSSProperties,
   type ElementType,
@@ -18,6 +18,16 @@ export type TextShimmerProps = {
   spread?: number;
 };
 
+const motionComponentCache = new Map<string, ReturnType<typeof m.create>>();
+
+function getMotionComponent(tag: keyof JSX.IntrinsicElements) {
+  const cached = motionComponentCache.get(tag);
+  if (cached) return cached;
+  const component = m.create(tag);
+  motionComponentCache.set(tag, component);
+  return component;
+}
+
 const ShimmerComponent = ({
   children,
   as: Component = "p",
@@ -25,7 +35,7 @@ const ShimmerComponent = ({
   duration = 2,
   spread = 2,
 }: TextShimmerProps) => {
-  const MotionComponent = motion.create(
+  const MotionComponent = getMotionComponent(
     Component as keyof JSX.IntrinsicElements,
   );
 

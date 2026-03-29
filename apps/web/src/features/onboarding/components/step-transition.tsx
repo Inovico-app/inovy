@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { m } from "motion/react";
 import { useEffect, useRef } from "react";
 
 interface StepTransitionProps {
@@ -25,7 +25,7 @@ export function StepTransition({ children }: StepTransitionProps) {
   }, []);
 
   return (
-    <motion.div
+    <m.div
       ref={ref}
       initial={{ opacity: 0, x: 10 }}
       animate={{ opacity: 1, x: 0 }}
@@ -33,6 +33,6 @@ export function StepTransition({ children }: StepTransitionProps) {
       transition={{ duration: 0.3, ease: "easeOut" }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }

@@ -12,6 +12,8 @@ const isDockerBuild = process.env.DOCKER_BUILD === "true";
 
 const nextConfig: NextConfig = {
   images: {
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 2678400, // 31 days
     remotePatterns: [
       {
         protocol: "https",
@@ -32,9 +34,6 @@ const nextConfig: NextConfig = {
   typedRoutes: true,
   cacheComponents: true,
   reactCompiler: true,
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   // Exclude pino and related packages from bundling (server-only)
   serverExternalPackages: [
     "pino",
@@ -42,13 +41,27 @@ const nextConfig: NextConfig = {
     "pino-file",
     "pino-worker",
     "thread-system",
+    "mammoth",
+    "pdf-parse",
+    "archiver",
+    "googleapis",
+    "@react-pdf/renderer",
+    "@anthropic-ai/sdk",
+    "openai",
   ],
   experimental: {
     serverActions: {
-      bodySizeLimit: "500mb",
+      bodySizeLimit: "50mb",
     },
-    proxyClientMaxBodySize: "500mb",
-    optimizePackageImports: ["lucide-react"],
+    proxyClientMaxBodySize: "50mb",
+    optimizePackageImports: [
+      "lucide-react",
+      "recharts",
+      "motion",
+      "@tiptap/react",
+      "@tiptap/starter-kit",
+      "date-fns",
+    ],
   },
   async redirects() {
     return [

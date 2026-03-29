@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { queryKeys } from "@/lib/query-keys";
 import { getReprocessingStatusAction } from "../actions/reprocess-recording";
 import type { WorkflowStatus } from "@/server/db/schema/recordings";
 
 interface UseReprocessingStatusOptions {
   recordingId: string;
   enabled?: boolean;
-  pollingInterval?: number; // in milliseconds
+  pollingInterval?: number;
   onStatusChange?: (status: {
     isReprocessing: boolean;
     status?: string;
@@ -33,28 +35,25 @@ interface UseReprocessingStatusReturn {
 }
 
 function isStatusActive(status: ReprocessingStatus | null): boolean {
-  return (
-    !status || status.isReprocessing || status.workflowStatus === "running"
-  );
+  if (!status) return false;
+  return status.isReprocessing || status.workflowStatus === "running";
 }
 
 export function useReprocessingStatus({
   recordingId,
   enabled = true,
-  pollingInterval = 3000, // Default: 3 seconds
+  pollingInterval = 3000,
   onStatusChange,
 }: UseReprocessingStatusOptions): UseReprocessingStatusReturn {
-  const [reprocessingStatus, setReprocessingStatus] =
-    useState<ReprocessingStatus | null>(null);
-  const [isPolling, setIsPolling] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const prevStatusRef = useRef<ReprocessingStatus | null>(null);
 
-  const fetchStatus = useCallback(async () => {
-    try {
+  const { data, error, isFetching, isRefetching, refetch } = useQuery({
+    queryKey: queryKeys.recordings.reprocessingStatus(recordingId),
+    queryFn: async () => {
       const result = await getReprocessingStatusAction({ recordingId });
 
       if (result?.data) {
-        const newStatus: ReprocessingStatus = {
+        return {
           isReprocessing: result.data.isReprocessing,
           workflowStatus: result.data.workflowStatus,
           workflowError: result.data.workflowError,
@@ -62,64 +61,53 @@ export function useReprocessingStatus({
           startedAt: result.data.startedAt,
           errorMessage: result.data.errorMessage,
           lastReprocessedAt: result.data.lastReprocessedAt,
-        };
-
-        setReprocessingStatus(newStatus);
-
-        // Notify of status change
-        onStatusChange?.({
-          isReprocessing: newStatus.isReprocessing,
-          status: newStatus.status,
-          errorMessage: newStatus.errorMessage,
-        });
-
-        if (!isStatusActive(newStatus)) {
-          setIsPolling(false);
-        }
+        } satisfies ReprocessingStatus;
       }
 
-      setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to check reprocessing status",
-      );
-    }
-  }, [recordingId, onStatusChange]);
+      throw new Error("Failed to fetch reprocessing status");
+    },
+    enabled,
+    refetchInterval: (query) => {
+      if (query.state.error) return false;
+      const currentStatus = query.state.data;
+      if (currentStatus && !isStatusActive(currentStatus)) {
+        return false;
+      }
+      return pollingInterval;
+    },
+    refetchIntervalInBackground: false,
+  });
+
+  const reprocessingStatus = data ?? null;
 
   useEffect(() => {
-    // Don't poll if disabled
-    if (!enabled) {
-      setIsPolling(false);
-      return;
+    if (!reprocessingStatus) return;
+    const prev = prevStatusRef.current;
+    if (prev && prev.isReprocessing !== reprocessingStatus.isReprocessing) {
+      onStatusChange?.({
+        isReprocessing: reprocessingStatus.isReprocessing,
+        status: reprocessingStatus.status,
+        errorMessage: reprocessingStatus.errorMessage,
+      });
     }
+    prevStatusRef.current = reprocessingStatus;
+  }, [reprocessingStatus, onStatusChange]);
 
-    if (!isStatusActive(reprocessingStatus)) {
-      setIsPolling(false);
-      return;
-    }
-
-    setIsPolling(true);
-
-    // Initial check
-    void fetchStatus();
-
-    // Set up polling interval
-    const pollingIntervalId = setInterval(() => {
-      void fetchStatus();
-    }, pollingInterval);
-
-    return () => {
-      clearInterval(pollingIntervalId);
-      setIsPolling(false);
-    };
-  }, [enabled, pollingInterval, reprocessingStatus, fetchStatus]);
+  const isPolling =
+    enabled &&
+    (isFetching || isRefetching) &&
+    isStatusActive(reprocessingStatus);
 
   return {
     reprocessingStatus,
     isPolling,
-    error,
-    refetch: fetchStatus,
+    error: error
+      ? error instanceof Error
+        ? error.message
+        : "Failed to check reprocessing status"
+      : null,
+    refetch: async () => {
+      await refetch();
+    },
   };
 }

@@ -28,13 +28,20 @@ export async function getCachedNotifications(
 
 /**
  * Get unread notification count (cached)
+ * Uses a separate cache tag from the full notification list so that
+ * invalidating one does not unnecessarily bust the other.
  */
 export async function getCachedUnreadCount(
   userId: string,
   orgCode: string,
 ): Promise<number> {
   "use cache";
-  cacheTag(...tagsFor("notification", { userId, organizationId: orgCode }));
+  cacheTag(
+    ...tagsFor("notificationUnreadCount", {
+      userId,
+      organizationId: orgCode,
+    }),
+  );
 
   return await NotificationsQueries.getUnreadCount(userId, orgCode);
 }
