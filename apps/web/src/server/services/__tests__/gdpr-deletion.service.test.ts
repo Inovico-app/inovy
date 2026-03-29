@@ -330,10 +330,59 @@ describe("GdprDeletionService", () => {
         expect.stringMatching(/^user_[a-f0-9]{16}$/),
       );
 
-      // Step 7: OAuth connections deleted
+      // Step 8: OAuth connections deleted
       expect(OAuthConnectionsQueries.deleteByUserId).toHaveBeenCalledWith(
         USER_ID,
       );
+    });
+
+    it("anonymizes assignee even when user created no tasks", async () => {
+      vi.mocked(TasksQueries.getTasksByCreator).mockResolvedValue([]);
+
+      await GdprDeletionService.processDeletionRequest(
+        REQUEST_ID,
+        USER_ID,
+        ORG_ID,
+        null,
+        null,
+      );
+
+      expect(TasksQueries.anonymizeAssigneeByUserId).toHaveBeenCalledWith(
+        USER_ID,
+        ORG_ID,
+      );
+      expect(TasksQueries.deleteByIds).not.toHaveBeenCalled();
+    });
+
+    it("exercises batch path for consent recording anonymization", async () => {
+      vi.mocked(ConsentQueries.findByUserId).mockResolvedValue([
+        { recordingId: "rec-consent-1" },
+      ] as never);
+      vi.mocked(RecordingsQueries.selectRecordingsByIds).mockResolvedValue([
+        {
+          id: "rec-consent-1",
+          organizationId: ORG_ID,
+          transcriptionText: null,
+        },
+      ] as never);
+      vi.mocked(AIInsightsQueries.getInsightsByRecordingIds).mockResolvedValue(
+        [],
+      );
+
+      await GdprDeletionService.processDeletionRequest(
+        REQUEST_ID,
+        USER_ID,
+        ORG_ID,
+        null,
+        null,
+      );
+
+      expect(RecordingsQueries.selectRecordingsByIds).toHaveBeenCalledWith([
+        "rec-consent-1",
+      ]);
+      expect(AIInsightsQueries.getInsightsByRecordingIds).toHaveBeenCalledWith([
+        "rec-consent-1",
+      ]);
     });
 
     it("returns not-found error when request does not exist", async () => {

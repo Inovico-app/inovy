@@ -179,10 +179,17 @@ export class GdprDeletionService {
 
       const anonymizedId = this.generateAnonymizedId(userId);
 
-      // 1. Delete user-owned recordings and their files
-      await this.deleteUserOwnedRecordings(userId, organizationId);
+      // 1. Capture owned recording IDs before deletion (needed for summary cleanup)
+      const ownedRecordings = await RecordingsQueries.selectRecordingsByCreator(
+        organizationId,
+        userId,
+      );
+      const ownedRecordingIds = ownedRecordings.map((r) => r.id);
 
-      // 2. Anonymize recordings where user is a participant
+      // 2. Delete user-owned recordings and their files
+      await this.deleteUserOwnedRecordings(ownedRecordings, organizationId);
+
+      // 3. Anonymize recordings where user is a participant
       await this.anonymizeParticipantRecordings(
         userId,
         organizationId,
@@ -191,19 +198,19 @@ export class GdprDeletionService {
         anonymizedId,
       );
 
-      // 3. Delete tasks created by user
+      // 4. Delete tasks created by user
       await this.deleteUserTasks(userId, organizationId);
 
-      // 4. Delete summaries created by user
-      await this.deleteUserSummaries(userId, organizationId);
+      // 5. Delete summaries for user's recordings (uses pre-captured IDs)
+      await this.deleteUserSummaries(userId, ownedRecordingIds);
 
-      // 5. Delete chat conversations
+      // 6. Delete chat conversations
       await this.deleteUserChatConversations(userId, organizationId);
 
-      // 6. Anonymize audit logs
+      // 7. Anonymize audit logs
       await this.anonymizeAuditLogs(userId, organizationId, anonymizedId);
 
-      // 7. Delete OAuth connections
+      // 8. Delete OAuth connections
       await this.deleteOAuthConnections(userId);
 
       // Update status to completed
@@ -254,15 +261,9 @@ export class GdprDeletionService {
    * Delete recordings owned by user
    */
   private static async deleteUserOwnedRecordings(
-    userId: string,
+    ownedRecordings: Array<{ id: string; fileUrl: string | null }>,
     organizationId: string,
   ): Promise<void> {
-    // Get recordings owned by user directly via DB filter
-    const ownedRecordings = await RecordingsQueries.selectRecordingsByCreator(
-      organizationId,
-      userId,
-    );
-
     const storage = await getStorageProvider();
 
     for (const recording of ownedRecordings) {
@@ -285,7 +286,6 @@ export class GdprDeletionService {
 
     logger.info("Deleted user-owned recordings", {
       component: "GdprDeletionService.deleteUserOwnedRecordings",
-      userId,
       count: ownedRecordings.length,
     });
   }
@@ -303,13 +303,24 @@ export class GdprDeletionService {
     // Find recordings where user is a participant
     const participantRecords = await ConsentQueries.findByUserId(userId);
 
-    const recordingIds = participantRecords.map(
+    const allRecordingIds = participantRecords.map(
       (p: { recordingId: string }) => p.recordingId,
     );
 
+    if (allRecordingIds.length === 0) return;
+
+    // Filter to only recordings in the current organization
+    const orgRecordings =
+      allRecordingIds.length > 0
+        ? await RecordingsQueries.selectRecordingsByIds(allRecordingIds)
+        : [];
+    const recordingIds = orgRecordings
+      .filter((r) => r.organizationId === organizationId)
+      .map((r) => r.id);
+
     if (recordingIds.length === 0) return;
 
-    // Anonymize consent participants
+    // Anonymize consent participants (scoped to org recordings only)
     const anonymizedEmail = `${anonymizedId}@anonymized.local`;
     await ConsentQueries.anonymizeByRecordingIds(
       recordingIds,
@@ -317,11 +328,12 @@ export class GdprDeletionService {
       anonymizedId,
     );
 
-    // Batch fetch all recordings and insights at once to avoid N+1
-    const [allRecordings, allInsights] = await Promise.all([
-      RecordingsQueries.selectRecordingsByIds(recordingIds),
-      AIInsightsQueries.getInsightsByRecordingIds(recordingIds),
-    ]);
+    // Batch fetch insights for org-scoped recordings
+    const allRecordings = orgRecordings.filter((r) =>
+      recordingIds.includes(r.id),
+    );
+    const allInsights =
+      await AIInsightsQueries.getInsightsByRecordingIds(recordingIds);
 
     // Anonymize transcription text
     for (const recording of allRecordings) {
@@ -399,16 +411,8 @@ export class GdprDeletionService {
    */
   private static async deleteUserSummaries(
     userId: string,
-    organizationId: string,
+    ownedRecordingIds: string[],
   ): Promise<void> {
-    // Get recordings owned by user directly via DB filter
-    const ownedRecordings = await RecordingsQueries.selectRecordingsByCreator(
-      organizationId,
-      userId,
-    );
-
-    const ownedRecordingIds = ownedRecordings.map((r) => r.id);
-
     if (ownedRecordingIds.length === 0) return;
 
     // Delete summary history for user's recordings
