@@ -98,8 +98,8 @@ describe("permissions.hasRole", () => {
       expect(predicate.check(admin)).toBe(true);
     });
 
-    it("returns false for owner (owner=4 < admin=5)", () => {
-      expect(predicate.check(owner)).toBe(false);
+    it("returns true for owner (owner=5 = admin=5)", () => {
+      expect(predicate.check(owner)).toBe(true);
     });
 
     it("returns false for manager", () => {
@@ -310,8 +310,8 @@ describe("isAdmin", () => {
     expect(isAdmin.check(admin)).toBe(true);
   });
 
-  it("fails for owner (owner=4 < admin=5)", () => {
-    expect(isAdmin.check(owner)).toBe(false);
+  it("passes for owner (owner=5 = admin=5)", () => {
+    expect(isAdmin.check(owner)).toBe(true);
   });
 
   it("fails for manager", () => {

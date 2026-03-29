@@ -1,6 +1,8 @@
 {
   "permissions": {
     "allow": ["Bash", "Gh", "Git", "Pnpm", "Docker", "Npm"]
+  },
+  "enabledPlugins": {
+    "pr-review-toolkit@claude-plugins-official": true
   }
 }
-

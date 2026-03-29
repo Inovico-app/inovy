@@ -3,7 +3,7 @@ import { SessionTimeoutProvider } from "@/features/auth/components/session-timeo
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { PermissionProvider } from "@/lib/permissions/permission-provider";
 import { computePermissionSet } from "@/lib/permissions/policy-map";
-import type { Role } from "@/lib/permissions/types";
+import { isValidRole, type Role } from "@/lib/permissions/types";
 import { Suspense } from "react";
 
 export default async function MainLayout({
@@ -19,7 +19,7 @@ export default async function MainLayout({
   if (sessionResult.isOk()) {
     const { member } = sessionResult.value;
     if (member?.role) {
-      role = member.role as Role;
+      role = isValidRole(member.role) ? member.role : "viewer";
       permissionKeys = [...computePermissionSet(role)];
     }
   }

@@ -2,8 +2,10 @@ import { redirect } from "next/navigation";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import type { BetterAuthMember } from "@/lib/better-auth-session";
 import type { BetterAuthUser } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 import type { PermissionPredicate } from "./predicates";
 import type { Role, PermissionSubject, PermissionContext } from "./types";
+import { isValidRole } from "./types";
 
 export interface GuardedSession {
   subject: PermissionSubject;
@@ -29,8 +31,10 @@ export async function requirePermission(
     redirect("/sign-in");
   }
 
+  const role: Role = isValidRole(member.role) ? member.role : "viewer";
+
   const subject: PermissionSubject = {
-    role: member.role as Role,
+    role,
     userId: user.id,
   };
 
@@ -40,6 +44,12 @@ export async function requirePermission(
   });
 
   if (!allowed) {
+    logger.warn("Permission denied", {
+      userId: user.id,
+      role,
+      predicate: predicate.label,
+      context,
+    });
     redirect("/");
   }
 

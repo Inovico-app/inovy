@@ -18,10 +18,9 @@ export const projectScopeResolver: ScopeResolver = {
     const projectRows = await db
       .select({ teamId: projects.teamId })
       .from(projects)
-      .where(eq(projects.id, context.projectId));
+      .where(eq(projects.id, context.projectId as string));
 
     const project = projectRows[0];
-
     if (!project?.teamId) return false;
 
     const memberRows = await db

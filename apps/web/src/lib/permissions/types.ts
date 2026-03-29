@@ -13,11 +13,18 @@ export type Role = RoleName;
 export const ROLE_HIERARCHY: Record<Role, number> = {
   superadmin: 6,
   admin: 5,
-  owner: 4,
+  owner: 5, // owner maps to admin in access-control.ts — same privilege level
   manager: 3,
   user: 2,
   viewer: 1,
 };
+
+/**
+ * Validate that a string is a known role. Returns false for unknown roles.
+ */
+export function isValidRole(role: string): role is Role {
+  return role in ROLE_HIERARCHY;
+}
 
 /**
  * Permission key in "resource:action" format.

@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
 import type { Role } from "./types";
 
 interface PermissionContextValue {
@@ -19,10 +19,11 @@ export function PermissionProvider({
   permissionKeys: string[];
   children: ReactNode;
 }) {
-  const value: PermissionContextValue = {
-    role,
-    permissions: new Set(permissionKeys),
-  };
+  const value = useMemo<PermissionContextValue>(
+    () => ({ role, permissions: new Set(permissionKeys) }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [role, permissionKeys.length],
+  );
   return (
     <PermissionCtx.Provider value={value}>{children}</PermissionCtx.Provider>
   );

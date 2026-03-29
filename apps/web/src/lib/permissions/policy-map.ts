@@ -55,7 +55,7 @@ export function roleHasPermission(
   role: RoleName,
   permission: PermissionKey,
 ): boolean {
-  return POLICY_MAP[role].has(permission);
+  return POLICY_MAP[role]?.has(permission) ?? false;
 }
 
 /**
