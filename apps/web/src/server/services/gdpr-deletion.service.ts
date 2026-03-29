@@ -321,10 +321,11 @@ export class GdprDeletionService {
 
     if (recordingIds.length === 0) return;
 
-    // Anonymize consent participants (scoped to org recordings only)
+    // Anonymize only the deleted user's consent records on org recordings
     const anonymizedEmail = `${anonymizedId}@anonymized.local`;
     await ConsentQueries.anonymizeByRecordingIds(
       recordingIds,
+      userId,
       anonymizedEmail,
       anonymizedId,
     );
