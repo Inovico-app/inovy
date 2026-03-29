@@ -2,7 +2,7 @@ import { tagsFor } from "@/lib/cache";
 import { cacheTag } from "next/cache";
 import type { ChatConversation } from "../db/schema/chat-conversations";
 import type { ChatMessage } from "../db/schema/chat-messages";
-import { ConversationService } from "../services/chat";
+import { ConversationService } from "../services/chat/conversation.service";
 
 /**
  * Cached chat queries
