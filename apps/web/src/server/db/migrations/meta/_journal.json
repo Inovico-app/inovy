@@ -526,6 +526,13 @@
       "when": 1774786651842,
       "tag": "0080_add-stripe-billing-schema",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1774803056740,
+      "tag": "0081_add-performance-indexes",
+      "breakpoints": true
     }
   ]
 }

@@ -372,26 +372,25 @@ export class GdprDeletionService {
     userId: string,
     organizationId: string,
   ): Promise<void> {
+    // Anonymize tasks where user is assignee (runs regardless of created tasks)
+    await TasksQueries.anonymizeAssigneeByUserId(userId, organizationId);
+
     const createdTasks = await TasksQueries.getTasksByCreator(
       organizationId,
       userId,
     );
 
-    if (createdTasks.length === 0) return;
-
-    // Delete tasks created by user
-    await TasksQueries.deleteByIds(
-      createdTasks.map((t) => t.id),
-      organizationId,
-    );
-
-    // Also anonymize tasks where user is assignee
-    await TasksQueries.anonymizeAssigneeByUserId(userId, organizationId);
+    if (createdTasks.length > 0) {
+      await TasksQueries.deleteByIds(
+        createdTasks.map((t) => t.id),
+        organizationId,
+      );
+    }
 
     logger.info("Deleted user tasks", {
       component: "GdprDeletionService.deleteUserTasks",
       userId,
-      count: createdTasks.length,
+      deletedCount: createdTasks.length,
     });
   }
 

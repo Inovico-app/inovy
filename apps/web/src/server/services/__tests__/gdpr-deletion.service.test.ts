@@ -4,6 +4,8 @@ import { createHash } from "crypto";
 vi.mock("@/server/data-access/recordings.queries", () => ({
   RecordingsQueries: {
     selectRecordingsByOrganization: vi.fn(),
+    selectRecordingsByCreator: vi.fn(),
+    selectRecordingsByIds: vi.fn(),
     selectRecordingById: vi.fn(),
     deleteRecording: vi.fn(),
     anonymizeTranscriptionText: vi.fn(),
@@ -13,6 +15,7 @@ vi.mock("@/server/data-access/recordings.queries", () => ({
 vi.mock("@/server/data-access/tasks.queries", () => ({
   TasksQueries: {
     getTasksByOrganization: vi.fn(),
+    getTasksByCreator: vi.fn(),
     deleteByIds: vi.fn(),
     anonymizeAssigneeByUserId: vi.fn(),
   },
@@ -36,6 +39,7 @@ vi.mock("@/server/data-access/audit-logs.queries", () => ({
 vi.mock("@/server/data-access/ai-insights.queries", () => ({
   AIInsightsQueries: {
     getInsightsByRecordingId: vi.fn(),
+    getInsightsByRecordingIds: vi.fn(),
     anonymizeSpeakerNames: vi.fn(),
   },
 }));
@@ -146,8 +150,13 @@ describe("GdprDeletionService", () => {
     vi.mocked(
       RecordingsQueries.selectRecordingsByOrganization,
     ).mockResolvedValue([]);
+    vi.mocked(RecordingsQueries.selectRecordingsByCreator).mockResolvedValue(
+      [],
+    );
+    vi.mocked(RecordingsQueries.selectRecordingsByIds).mockResolvedValue([]);
     vi.mocked(ConsentQueries.findByUserId).mockResolvedValue([]);
     vi.mocked(TasksQueries.getTasksByOrganization).mockResolvedValue([]);
+    vi.mocked(TasksQueries.getTasksByCreator).mockResolvedValue([]);
     vi.mocked(TasksQueries.anonymizeAssigneeByUserId).mockResolvedValue(
       undefined as never,
     );
@@ -164,6 +173,9 @@ describe("GdprDeletionService", () => {
       undefined as never,
     );
     vi.mocked(AIInsightsQueries.getInsightsByRecordingId).mockResolvedValue([]);
+    vi.mocked(AIInsightsQueries.getInsightsByRecordingIds).mockResolvedValue(
+      [],
+    );
   });
 
   // -------------------------------------------------------------------------
@@ -271,10 +283,10 @@ describe("GdprDeletionService", () => {
 
     it("calls all 7 deletion/anonymization steps", async () => {
       const recording = makeRecording();
-      vi.mocked(
-        RecordingsQueries.selectRecordingsByOrganization,
-      ).mockResolvedValue([recording] as never);
-      vi.mocked(TasksQueries.getTasksByOrganization).mockResolvedValue([
+      vi.mocked(RecordingsQueries.selectRecordingsByCreator).mockResolvedValue([
+        recording,
+      ] as never);
+      vi.mocked(TasksQueries.getTasksByCreator).mockResolvedValue([
         { id: "task-1", createdById: USER_ID },
       ] as never);
       vi.mocked(TasksQueries.deleteByIds).mockResolvedValue(undefined as never);
@@ -290,20 +302,16 @@ describe("GdprDeletionService", () => {
         null,
       );
 
-      // Step 1 & 4 & summary: recordings queries used
-      expect(
-        RecordingsQueries.selectRecordingsByOrganization,
-      ).toHaveBeenCalledWith(ORG_ID, {});
+      // Step 1 & 4 & summary: recordings queries used (now creator-scoped)
+      expect(RecordingsQueries.selectRecordingsByCreator).toHaveBeenCalledWith(
+        ORG_ID,
+        USER_ID,
+      );
 
       // Step 2: participant anonymization via consent queries
       expect(ConsentQueries.findByUserId).toHaveBeenCalledWith(USER_ID);
 
-      // Step 3: tasks
-      expect(TasksQueries.getTasksByOrganization).toHaveBeenCalledWith(
-        ORG_ID,
-        {},
-      );
-      expect(TasksQueries.deleteByIds).toHaveBeenCalled();
+      // Step 3: tasks (anonymize runs unconditionally, then delete created tasks)
       expect(TasksQueries.anonymizeAssigneeByUserId).toHaveBeenCalledWith(
         USER_ID,
         ORG_ID,
@@ -376,9 +384,9 @@ describe("GdprDeletionService", () => {
     });
 
     it("returns an error result when a step throws unexpectedly", async () => {
-      vi.mocked(
-        RecordingsQueries.selectRecordingsByOrganization,
-      ).mockRejectedValue(new Error("Storage failure"));
+      vi.mocked(RecordingsQueries.selectRecordingsByCreator).mockRejectedValue(
+        new Error("Storage failure"),
+      );
 
       const result = await GdprDeletionService.processDeletionRequest(
         REQUEST_ID,

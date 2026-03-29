@@ -51,9 +51,9 @@ const nextConfig: NextConfig = {
   ],
   experimental: {
     serverActions: {
-      bodySizeLimit: "10mb",
+      bodySizeLimit: "50mb",
     },
-    proxyClientMaxBodySize: "10mb",
+    proxyClientMaxBodySize: "50mb",
     optimizePackageImports: [
       "lucide-react",
       "recharts",
