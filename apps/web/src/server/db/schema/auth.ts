@@ -282,6 +282,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   teams: many(teams),
   members: many(members),
   invitations: many(invitations),
+  subscriptions: many(subscriptions),
 }));
 
 export const teamsRelations = relations(teams, ({ one, many }) => ({
@@ -336,5 +337,12 @@ export const twoFactorsRelations = relations(twoFactors, ({ one }) => ({
   users: one(users, {
     fields: [twoFactors.userId],
     references: [users.id],
+  }),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [subscriptions.referenceId],
+    references: [organizations.id],
   }),
 }));

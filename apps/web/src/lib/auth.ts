@@ -14,7 +14,6 @@ import * as schema from "@/server/db/schema/auth";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { passkey } from "@better-auth/passkey";
 import { stripe as stripePlugin } from "@better-auth/stripe";
-import Stripe from "stripe";
 import type {
   AuthContext,
   BetterAuthOptions,
@@ -28,9 +27,8 @@ import { magicLink, organization } from "better-auth/plugins";
 import { twoFactor } from "better-auth/plugins/two-factor";
 import { nanoid } from "nanoid";
 import { headers } from "next/headers";
+import { getStripeClient } from "./stripe";
 import { ac, roles } from "./auth/access-control";
-
-const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 /**
  * Better Auth instance configuration
@@ -712,7 +710,7 @@ export const auth = betterAuth({
       issuer: "Inovy",
     }),
     stripePlugin({
-      stripeClient,
+      stripeClient: getStripeClient(),
       stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
       createCustomerOnSignUp: false,
       subscription: {
