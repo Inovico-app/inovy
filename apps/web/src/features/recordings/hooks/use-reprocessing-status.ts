@@ -83,7 +83,7 @@ export function useReprocessingStatus({
   useEffect(() => {
     if (!reprocessingStatus) return;
     const prev = prevStatusRef.current;
-    if (prev?.isReprocessing !== reprocessingStatus.isReprocessing) {
+    if (prev && prev.isReprocessing !== reprocessingStatus.isReprocessing) {
       onStatusChange?.({
         isReprocessing: reprocessingStatus.isReprocessing,
         status: reprocessingStatus.status,

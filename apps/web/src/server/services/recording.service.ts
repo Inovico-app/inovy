@@ -141,7 +141,10 @@ export class RecordingService {
 
     try {
       // Single query with JOIN to get recording + project teamId in one round-trip
-      const result = await RecordingsQueries.selectRecordingByIdWithTeam(id);
+      const result = await RecordingsQueries.selectRecordingByIdWithTeam(
+        id,
+        auth.organizationId,
+      );
 
       if (!result) {
         logger.warn("Recording not found", {

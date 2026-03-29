@@ -40,6 +40,7 @@ export class RecordingsQueries {
    */
   static async selectRecordingByIdWithTeam(
     id: string,
+    organizationId: string,
   ): Promise<(Recording & { teamId: string | null }) | null> {
     const [result] = await db
       .select({
@@ -88,7 +89,12 @@ export class RecordingsQueries {
       })
       .from(recordings)
       .leftJoin(projects, eq(recordings.projectId, projects.id))
-      .where(eq(recordings.id, id))
+      .where(
+        and(
+          eq(recordings.id, id),
+          eq(recordings.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     return result ?? null;
   }

@@ -25,6 +25,7 @@ import {
   memo,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -150,24 +151,35 @@ export const MessageBranch = ({
   children,
   ...props
 }: MessageBranchProps) => {
-  const [currentBranch, setCurrentBranch] = useState(defaultBranch);
+  const [currentBranch, setCurrentBranch] = useState(
+    Math.min(defaultBranch, Math.max(0, branchCount - 1)),
+  );
 
   const totalBranches = branchCount;
 
+  useEffect(() => {
+    setCurrentBranch((prev) =>
+      prev >= totalBranches ? Math.max(0, totalBranches - 1) : prev,
+    );
+  }, [totalBranches]);
+
   const handleBranchChange = useCallback(
     (newBranch: number) => {
-      setCurrentBranch(newBranch);
-      onBranchChange?.(newBranch);
+      const clamped = Math.max(0, Math.min(newBranch, totalBranches - 1));
+      setCurrentBranch(clamped);
+      onBranchChange?.(clamped);
     },
-    [onBranchChange],
+    [onBranchChange, totalBranches],
   );
 
   const goToPrevious = useCallback(() => {
+    if (totalBranches <= 1) return;
     const newBranch = currentBranch > 0 ? currentBranch - 1 : totalBranches - 1;
     handleBranchChange(newBranch);
   }, [currentBranch, totalBranches, handleBranchChange]);
 
   const goToNext = useCallback(() => {
+    if (totalBranches <= 1) return;
     const newBranch = currentBranch < totalBranches - 1 ? currentBranch + 1 : 0;
     handleBranchChange(newBranch);
   }, [currentBranch, totalBranches, handleBranchChange]);
