@@ -3,7 +3,7 @@
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { ConversationService } from "@/server/services/chat";
+import { ConversationService } from "@/server/services/chat/conversation.service";
 import {
   conversationIdSchema,
   listConversationsSchema,

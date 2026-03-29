@@ -1,6 +1,6 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger } from "@/lib/logger";
-import { ConversationService } from "@/server/services/chat";
+import { ConversationService } from "@/server/services/chat/conversation.service";
 import { NextResponse } from "next/server";
 
 export async function GET(
