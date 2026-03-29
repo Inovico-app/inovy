@@ -22,7 +22,10 @@ export function useSeriesSubscriptions() {
     queryKey: queryKeys.seriesSubscriptions,
     queryFn: async () => {
       const result = await getSeriesSubscriptionsAction();
-      return result?.data ?? [];
+      if (!result || result.data === undefined) {
+        throw new Error("Failed to fetch series subscriptions");
+      }
+      return result.data;
     },
   });
 

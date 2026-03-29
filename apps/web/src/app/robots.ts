@@ -5,8 +5,28 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/security", "/privacy-policy", "/terms-of-service"],
-        disallow: "/",
+        disallow: [
+          "/api/",
+          "/_next/",
+          "/settings/",
+          "/admin/",
+          "/projects/",
+          "/recordings/",
+          "/tasks/",
+          "/teams/",
+          "/meetings/",
+          "/chat/",
+          "/record/",
+        ],
+        allow: [
+          "/sign-in",
+          "/sign-up",
+          "/onboarding",
+          "/accept-invitation",
+          "/security",
+          "/privacy-policy",
+          "/terms-of-service",
+        ],
       },
     ],
   };

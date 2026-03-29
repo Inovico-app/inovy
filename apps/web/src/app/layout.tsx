@@ -31,7 +31,7 @@ const jetBrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "https://app.inovy.io",
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://app.inovy.io",
   ),
   title: { default: "Inovy", template: "%s | Inovy" },
   description: "EU-compliant meeting intelligence platform",
@@ -76,9 +76,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn("font-sans", geist.variable)}
     >
-      <body
-        className={`${geist.variable} ${jetBrainsMono.variable} antialiased`}
-      >
+      <body className={`${jetBrainsMono.variable} antialiased`}>
         <AriaLiveRegion />
         <BetterAuthProvider>
           <QueryProvider>

@@ -505,12 +505,18 @@ export class RecordingsQueries {
    */
   static async selectRecordingsByIds(
     recordingIds: string[],
+    organizationId: string,
   ): Promise<Recording[]> {
     if (recordingIds.length === 0) return [];
     return await db
       .select()
       .from(recordings)
-      .where(inArray(recordings.id, recordingIds));
+      .where(
+        and(
+          inArray(recordings.id, recordingIds),
+          eq(recordings.organizationId, organizationId),
+        ),
+      );
   }
 
   static async selectRecordingsByOrganization(

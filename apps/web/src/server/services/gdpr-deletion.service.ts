@@ -312,11 +312,12 @@ export class GdprDeletionService {
     // Filter to only recordings in the current organization
     const orgRecordings =
       allRecordingIds.length > 0
-        ? await RecordingsQueries.selectRecordingsByIds(allRecordingIds)
+        ? await RecordingsQueries.selectRecordingsByIds(
+            allRecordingIds,
+            organizationId,
+          )
         : [];
-    const recordingIds = orgRecordings
-      .filter((r) => r.organizationId === organizationId)
-      .map((r) => r.id);
+    const recordingIds = orgRecordings.map((r) => r.id);
 
     if (recordingIds.length === 0) return;
 

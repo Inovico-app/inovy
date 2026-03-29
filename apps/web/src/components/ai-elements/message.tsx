@@ -17,9 +17,11 @@ import {
   PaperclipIcon,
   XIcon,
 } from "lucide-react";
-import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
+import type { ComponentProps, HTMLAttributes } from "react";
 import {
+  Children,
   createContext,
+  isValidElement,
   memo,
   useCallback,
   useContext,
@@ -135,11 +137,13 @@ const useMessageBranch = () => {
 };
 
 export type MessageBranchProps = HTMLAttributes<HTMLDivElement> & {
+  branchCount: number;
   defaultBranch?: number;
   onBranchChange?: (branchIndex: number) => void;
 };
 
 export const MessageBranch = ({
+  branchCount,
   defaultBranch = 0,
   onBranchChange,
   className,
@@ -147,12 +151,8 @@ export const MessageBranch = ({
   ...props
 }: MessageBranchProps) => {
   const [currentBranch, setCurrentBranch] = useState(defaultBranch);
-  const childrenArray = useMemo(
-    () => (Array.isArray(children) ? children : [children]) as ReactElement[],
-    [children],
-  );
 
-  const totalBranches = childrenArray.length;
+  const totalBranches = branchCount;
 
   const handleBranchChange = useCallback(
     (newBranch: number) => {
@@ -188,17 +188,7 @@ export const MessageBranch = ({
         className={cn("grid w-full gap-2 [&>div]:pb-0", className)}
         {...props}
       >
-        {childrenArray.map((branch, index) => (
-          <div
-            className={cn(
-              "grid gap-2 overflow-hidden [&>div]:pb-0",
-              index === currentBranch ? "block" : "hidden",
-            )}
-            key={branch.key}
-          >
-            {branch}
-          </div>
-        ))}
+        {children}
       </div>
     </MessageBranchContext.Provider>
   );
@@ -211,10 +201,7 @@ export const MessageBranchContent = ({
   ...props
 }: MessageBranchContentProps) => {
   const { currentBranch } = useMessageBranch();
-  const childrenArray = useMemo(
-    () => (Array.isArray(children) ? children : [children]),
-    [children],
-  );
+  const childrenArray = useMemo(() => Children.toArray(children), [children]);
 
   return childrenArray.map((branch, index) => (
     <div
@@ -222,7 +209,7 @@ export const MessageBranchContent = ({
         "grid gap-2 overflow-hidden [&>div]:pb-0",
         index === currentBranch ? "block" : "hidden",
       )}
-      key={branch.key}
+      key={isValidElement(branch) ? branch.key : index}
       {...props}
     >
       {branch}

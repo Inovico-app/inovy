@@ -377,9 +377,10 @@ describe("GdprDeletionService", () => {
         null,
       );
 
-      expect(RecordingsQueries.selectRecordingsByIds).toHaveBeenCalledWith([
-        "rec-consent-1",
-      ]);
+      expect(RecordingsQueries.selectRecordingsByIds).toHaveBeenCalledWith(
+        ["rec-consent-1"],
+        ORG_ID,
+      );
       expect(AIInsightsQueries.getInsightsByRecordingIds).toHaveBeenCalledWith([
         "rec-consent-1",
       ]);

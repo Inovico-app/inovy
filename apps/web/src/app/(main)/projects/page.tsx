@@ -9,6 +9,7 @@ import { ProjectTeamFilter } from "@/features/projects/components/project-team-f
 import { ProjectTabs } from "@/features/projects/components/project-tabs";
 import { getCreatorDisplayName } from "@/lib/formatters/display-formatters";
 import { filterProjectsBySearch } from "@/lib/filters/project-filters";
+import { logger } from "@/lib/logger";
 import type { AllowedStatus } from "@/server/data-access/projects.queries";
 import type { ProjectWithRecordingCountDto } from "@/server/dto/project.dto";
 import { resolveAuthContext } from "@/lib/auth-context";
@@ -48,14 +49,20 @@ async function ProjectsList({
     );
   }
 
-  const allProjects = await getCachedProjectsWithRecordingCount(
-    authResult.value.organizationId,
-    status,
-    {
-      userTeamIds: authResult.value.userTeamIds,
-      user: authResult.value.user,
-    },
-  );
+  let allProjects: ProjectWithRecordingCountDto[];
+  try {
+    allProjects = await getCachedProjectsWithRecordingCount(
+      authResult.value.organizationId,
+      status,
+      {
+        userTeamIds: authResult.value.userTeamIds,
+        user: authResult.value.user,
+      },
+    );
+  } catch (error) {
+    logger.error("Failed to fetch projects", { error });
+    allProjects = [];
+  }
 
   // Filter projects by search query
   let projects = filterProjectsBySearch(allProjects, searchQuery);

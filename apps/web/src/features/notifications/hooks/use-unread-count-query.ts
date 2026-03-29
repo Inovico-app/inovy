@@ -5,7 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 
 /**
  * React Query hook for polling unread notification count
- * Polls every 15 seconds in the background
+ * Polls every 60 seconds when the window is focused (no background polling).
+ * Data is considered stale after 30 seconds.
  */
 export function useUnreadCountQuery() {
   return useQuery({

@@ -35,9 +35,8 @@ interface UseReprocessingStatusReturn {
 }
 
 function isStatusActive(status: ReprocessingStatus | null): boolean {
-  return (
-    !status || status.isReprocessing || status.workflowStatus === "running"
-  );
+  if (!status) return false;
+  return status.isReprocessing || status.workflowStatus === "running";
 }
 
 export function useReprocessingStatus({
@@ -69,8 +68,9 @@ export function useReprocessingStatus({
     },
     enabled,
     refetchInterval: (query) => {
+      if (query.state.error) return false;
       const currentStatus = query.state.data;
-      if (!isStatusActive(currentStatus ?? null)) {
+      if (currentStatus && !isStatusActive(currentStatus)) {
         return false;
       }
       return pollingInterval;
