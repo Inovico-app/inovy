@@ -34,6 +34,7 @@ export const users = pgTable("users", {
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
   twoFactorEnabled: boolean("two_factor_enabled").default(false),
+  stripeCustomerId: text("stripe_customer_id"),
   role: text("role").default("user").notNull(),
   onboardingCompleted: boolean("onboarding_completed").default(false).notNull(),
 });
@@ -113,6 +114,7 @@ export const organizations = pgTable(
       withTimezone: true,
     }),
     deletionRequestedById: text("deletion_requested_by_id"),
+    stripeCustomerId: text("stripe_customer_id"),
   },
   (table) => [uniqueIndex("organizations_slug_uidx").on(table.slug)],
 );
@@ -232,6 +234,26 @@ export const twoFactors = pgTable(
   ],
 );
 
+export const subscriptions = pgTable("subscriptions", {
+  id: text("id").primaryKey(),
+  plan: text("plan").notNull(),
+  referenceId: text("reference_id").notNull(),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  status: text("status").default("incomplete"),
+  periodStart: timestamp("period_start"),
+  periodEnd: timestamp("period_end"),
+  trialStart: timestamp("trial_start"),
+  trialEnd: timestamp("trial_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+  cancelAt: timestamp("cancel_at"),
+  canceledAt: timestamp("canceled_at"),
+  endedAt: timestamp("ended_at"),
+  seats: integer("seats"),
+  billingInterval: text("billing_interval"),
+  stripeScheduleId: text("stripe_schedule_id"),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   accounts: many(accounts),
@@ -260,6 +282,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   teams: many(teams),
   members: many(members),
   invitations: many(invitations),
+  subscriptions: many(subscriptions),
 }));
 
 export const teamsRelations = relations(teams, ({ one, many }) => ({
@@ -314,5 +337,12 @@ export const twoFactorsRelations = relations(twoFactors, ({ one }) => ({
   users: one(users, {
     fields: [twoFactors.userId],
     references: [users.id],
+  }),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [subscriptions.referenceId],
+    references: [organizations.id],
   }),
 }));

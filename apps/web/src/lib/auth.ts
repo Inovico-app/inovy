@@ -13,6 +13,7 @@ import { db } from "@/server/db";
 import * as schema from "@/server/db/schema/auth";
 import { AuditLogService } from "@/server/services/audit-log.service";
 import { passkey } from "@better-auth/passkey";
+import { stripe as stripePlugin } from "@better-auth/stripe";
 import type {
   AuthContext,
   BetterAuthOptions,
@@ -26,6 +27,7 @@ import { magicLink, organization } from "better-auth/plugins";
 import { twoFactor } from "better-auth/plugins/two-factor";
 import { nanoid } from "nanoid";
 import { headers } from "next/headers";
+import { getStripeClient } from "./stripe";
 import { ac, roles } from "./auth/access-control";
 
 /**
@@ -71,6 +73,7 @@ export const auth = betterAuth({
       twoFactors: schema.twoFactors,
       teams: schema.teams,
       teamMembers: schema.teamMembers,
+      subscriptions: schema.subscriptions,
     },
   }),
   baseURL:
@@ -706,6 +709,22 @@ export const auth = betterAuth({
     twoFactor({
       issuer: "Inovy",
     }),
+    ...(process.env.STRIPE_SECRET_KEY
+      ? [
+          stripePlugin({
+            stripeClient: getStripeClient(),
+            stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
+            createCustomerOnSignUp: false,
+            subscription: {
+              enabled: true,
+              plans: [],
+            },
+            organization: {
+              enabled: true,
+            },
+          }),
+        ]
+      : []),
     nextCookies(), // Must be last plugin
   ],
 });
