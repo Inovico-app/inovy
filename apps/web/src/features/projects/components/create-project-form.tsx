@@ -9,14 +9,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Form } from "@/components/ui/form";
+import { FieldInput } from "@/components/ui/form-fields";
 import { Textarea } from "@/components/ui/textarea";
 import { createProjectAction } from "@/features/projects/actions/create-project";
 import { useProjectTeamPicker } from "@/features/projects/hooks/use-project-team-picker";
@@ -30,7 +29,7 @@ import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { useAction } from "next-safe-action/hooks";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
@@ -106,103 +105,107 @@ export function CreateProjectForm({
 
   const formContent = (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t("projectNameRequired")}</FormLabel>
-              <FormControl>
-                <Input
-                  type="text"
-                  placeholder={t("projectNamePlaceholder")}
-                  disabled={isExecuting}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <form onSubmit={form.handleSubmit(handleSubmit)}>
+        <FieldGroup>
+          <Controller
+            control={form.control}
+            name="name"
+            render={({ field, fieldState }) => (
+              <FieldInput
+                label={t("projectNameRequired")}
+                field={field}
+                fieldState={fieldState}
+                type="text"
+                placeholder={t("projectNamePlaceholder")}
+                disabled={isExecuting}
+              />
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t("description")}</FormLabel>
-              <FormControl>
+          <Controller
+            control={form.control}
+            name="description"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={!!fieldState.error || undefined}>
+                <FieldLabel htmlFor={field.name}>{t("description")}</FieldLabel>
                 <Textarea
+                  id={field.name}
+                  aria-invalid={!!fieldState.error || undefined}
                   placeholder={t("descriptionPlaceholder")}
                   disabled={isExecuting}
                   rows={3}
                   maxLength={PROJECT_DESCRIPTION_MAX_LENGTH}
                   {...field}
+                  value={field.value ?? ""}
                 />
-              </FormControl>
-              <p
-                className={`text-right text-xs ${
-                  description.length >= PROJECT_DESCRIPTION_MAX_LENGTH
-                    ? "text-red-500"
-                    : description.length >= PROJECT_DESCRIPTION_MAX_LENGTH - 100
-                      ? "text-yellow-500"
-                      : "text-muted-foreground"
-                }`}
-                aria-live="polite"
-              >
-                {description.length} / {PROJECT_DESCRIPTION_MAX_LENGTH}
-              </p>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {!isLoadingTeams && teams.length > 0 && (
-          <FormField
-            control={form.control}
-            name="teamId"
-            render={() => (
-              <FormItem>
-                <TeamPicker
-                  teams={teams}
-                  value={teamIdValue}
-                  onChange={(id) => form.setValue("teamId", id)}
-                />
-                <FormMessage />
-              </FormItem>
+                <p
+                  className={`text-right text-xs ${
+                    description.length >= PROJECT_DESCRIPTION_MAX_LENGTH
+                      ? "text-red-500"
+                      : description.length >=
+                          PROJECT_DESCRIPTION_MAX_LENGTH - 100
+                        ? "text-yellow-500"
+                        : "text-muted-foreground"
+                  }`}
+                  aria-live="polite"
+                >
+                  {description.length} / {PROJECT_DESCRIPTION_MAX_LENGTH}
+                </p>
+                {fieldState.error && (
+                  <FieldError>{fieldState.error.message}</FieldError>
+                )}
+              </Field>
             )}
           />
-        )}
 
-        {result?.serverError && (
-          <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md">
-            <p className="text-sm text-red-800 dark:text-red-200">
-              {result.serverError}
-            </p>
-          </div>
-        )}
-
-        <div className="flex gap-2">
-          <Button
-            type="submit"
-            disabled={isExecuting || !form.formState.isValid}
-            className="flex-1"
-          >
-            {isExecuting ? t("creating") : t("createProject")}
-          </Button>
-
-          {showCard && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleReset}
-              disabled={isExecuting}
-            >
-              Reset
-            </Button>
+          {!isLoadingTeams && teams.length > 0 && (
+            <Controller
+              control={form.control}
+              name="teamId"
+              render={({ field: _field, fieldState }) => (
+                <Field data-invalid={!!fieldState.error || undefined}>
+                  <TeamPicker
+                    teams={teams}
+                    value={teamIdValue}
+                    onChange={(id) => form.setValue("teamId", id)}
+                  />
+                  {fieldState.error && (
+                    <FieldError>{fieldState.error.message}</FieldError>
+                  )}
+                </Field>
+              )}
+            />
           )}
-        </div>
+
+          {result?.serverError && (
+            <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-md">
+              <p className="text-sm text-red-800 dark:text-red-200">
+                {result.serverError}
+              </p>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              type="submit"
+              disabled={isExecuting || !form.formState.isValid}
+              className="flex-1"
+            >
+              {isExecuting ? t("creating") : t("createProject")}
+            </Button>
+
+            {showCard && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleReset}
+                disabled={isExecuting}
+              >
+                Reset
+              </Button>
+            )}
+          </div>
+        </FieldGroup>
       </form>
     </Form>
   );

@@ -1,6 +1,5 @@
 "use client";
 
-import { useControllableState } from "@radix-ui/react-use-controllable-state";
 import {
   Collapsible,
   CollapsibleContent,
@@ -9,7 +8,14 @@ import {
 import { cn } from "@/lib/utils";
 import { BrainIcon, ChevronDownIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
-import { createContext, memo, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { Streamdown } from "streamdown";
 import { Shimmer } from "./shimmer";
 
@@ -52,15 +58,25 @@ export const Reasoning = memo(
     children,
     ...props
   }: ReasoningProps) => {
-    const [isOpen, setIsOpen] = useControllableState({
-      prop: open,
-      defaultProp: defaultOpen,
-      onChange: onOpenChange,
-    });
-    const [duration, setDuration] = useControllableState({
-      prop: durationProp,
-      defaultProp: undefined,
-    });
+    const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+    const isControlled = open !== undefined;
+    const isOpen = isControlled ? open : uncontrolledOpen;
+    const setIsOpen = useCallback(
+      (value: boolean) => {
+        if (!isControlled) {
+          setUncontrolledOpen(value);
+        }
+        onOpenChange?.(value);
+      },
+      [isControlled, onOpenChange],
+    );
+
+    const [duration, setDuration] = useState<number | undefined>(durationProp);
+    useEffect(() => {
+      if (durationProp !== undefined) {
+        setDuration(durationProp);
+      }
+    }, [durationProp]);
 
     const [hasAutoClosed, setHasAutoClosed] = useState(false);
     const [startTime, setStartTime] = useState<number | null>(null);

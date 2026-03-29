@@ -3,13 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Form } from "@/components/ui/form";
+import { FieldInput } from "@/components/ui/form-fields";
 import { Input } from "@/components/ui/input";
 import { updateProfile } from "@/features/settings/actions/update-profile";
 import {
@@ -19,7 +19,7 @@ import {
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { Loader2Icon } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
@@ -70,62 +70,56 @@ export function ProfileForm({
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="givenName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("firstName")}</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder={t("firstNamePlaceholder")}
-                      disabled={isExecuting}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="familyName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("lastName")}</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder={t("lastNamePlaceholder")}
-                      disabled={isExecuting}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormItem>
-              <FormLabel>{t("email")}</FormLabel>
-              <Input value={email} disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground">
-                {t("emailCannotBeChanged")}
-              </p>
-            </FormItem>
-
-            <div className="flex justify-end pt-2">
-              <Button
-                type="submit"
-                disabled={isExecuting || !form.formState.isDirty}
-              >
-                {isExecuting && (
-                  <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <FieldGroup>
+              <Controller
+                control={form.control}
+                name="givenName"
+                render={({ field, fieldState }) => (
+                  <FieldInput
+                    label={t("firstName")}
+                    field={field}
+                    fieldState={fieldState}
+                    placeholder={t("firstNamePlaceholder")}
+                    disabled={isExecuting}
+                  />
                 )}
-                Save Changes
-              </Button>
-            </div>
+              />
+
+              <Controller
+                control={form.control}
+                name="familyName"
+                render={({ field, fieldState }) => (
+                  <FieldInput
+                    label={t("lastName")}
+                    field={field}
+                    fieldState={fieldState}
+                    placeholder={t("lastNamePlaceholder")}
+                    disabled={isExecuting}
+                  />
+                )}
+              />
+
+              <Field>
+                <FieldLabel>{t("email")}</FieldLabel>
+                <Input value={email} disabled className="bg-muted" />
+                <FieldDescription className="text-xs">
+                  {t("emailCannotBeChanged")}
+                </FieldDescription>
+              </Field>
+
+              <div className="flex justify-end pt-2">
+                <Button
+                  type="submit"
+                  disabled={isExecuting || !form.formState.isDirty}
+                >
+                  {isExecuting && (
+                    <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Save Changes
+                </Button>
+              </div>
+            </FieldGroup>
           </form>
         </Form>
       </CardContent>
