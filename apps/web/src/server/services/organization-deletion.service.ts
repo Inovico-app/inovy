@@ -1,30 +1,28 @@
 import { logger } from "@/lib/logger";
 import { db } from "@/server/db";
-import {
-  agentMetrics,
-  auditLogs,
-  botSeriesSubscriptions,
-  botSettings,
-  chatAuditLog,
-  chatConversations,
-  chatEmbeddings,
-  dataExports,
-  driveWatches,
-  knowledgeBaseDocuments,
-  knowledgeBaseEntries,
-  meetingAgendaTemplates,
-  meetings,
-  notifications,
-  onboardings,
-  organizationSettings,
-  privacyRequests,
-  projectTemplates,
-  projects,
-  recordings,
-  taskTags,
-  userDeletionRequests,
-  worksCouncilApprovals,
-} from "@/server/db/schema";
+import { agentMetrics } from "@/server/db/schema/agent-metrics";
+import { auditLogs } from "@/server/db/schema/audit-logs";
+import { botSeriesSubscriptions } from "@/server/db/schema/bot-series-subscriptions";
+import { botSettings } from "@/server/db/schema/bot-settings";
+import { chatAuditLog } from "@/server/db/schema/chat-audit-log";
+import { chatConversations } from "@/server/db/schema/chat-conversations";
+import { chatEmbeddings } from "@/server/db/schema/chat-embeddings";
+import { dataExports } from "@/server/db/schema/data-exports";
+import { driveWatches } from "@/server/db/schema/drive-watches";
+import { knowledgeBaseDocuments } from "@/server/db/schema/knowledge-base-documents";
+import { knowledgeBaseEntries } from "@/server/db/schema/knowledge-base-entries";
+import { meetingAgendaTemplates } from "@/server/db/schema/meeting-agenda-templates";
+import { meetings } from "@/server/db/schema/meetings";
+import { notifications } from "@/server/db/schema/notifications";
+import { onboardings } from "@/server/db/schema/onboardings";
+import { organizationSettings } from "@/server/db/schema/organization-settings";
+import { privacyRequests } from "@/server/db/schema/privacy-requests";
+import { projectTemplates } from "@/server/db/schema/project-templates";
+import { projects } from "@/server/db/schema/projects";
+import { recordings } from "@/server/db/schema/recordings";
+import { taskTags } from "@/server/db/schema/task-tags";
+import { userDeletionRequests } from "@/server/db/schema/user-deletion-requests";
+import { worksCouncilApprovals } from "@/server/db/schema/works-council-approvals";
 import { QdrantClientService } from "@/server/services/rag/qdrant.service";
 import { getStorageProvider } from "@/server/services/storage";
 import { eq, inArray } from "drizzle-orm";
