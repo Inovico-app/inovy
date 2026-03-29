@@ -11,8 +11,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import type { BotSeriesSubscription } from "@/server/db/schema/bot-series-subscriptions";
 import { getSeriesSubscriptionsAction } from "../actions/get-series-subscriptions";
-
-const SERIES_SUBSCRIPTIONS_QUERY_KEY = ["series-subscriptions"] as const;
+import { queryKeys } from "@/lib/query-keys";
 
 export function useSeriesSubscriptions() {
   const queryClient = useQueryClient();
@@ -20,7 +19,7 @@ export function useSeriesSubscriptions() {
   const { data: subscriptions = [], isLoading } = useQuery<
     BotSeriesSubscription[]
   >({
-    queryKey: SERIES_SUBSCRIPTIONS_QUERY_KEY,
+    queryKey: queryKeys.seriesSubscriptions,
     queryFn: async () => {
       const result = await getSeriesSubscriptionsAction();
       return result?.data ?? [];
@@ -30,7 +29,7 @@ export function useSeriesSubscriptions() {
   const refetch = useCallback(
     () =>
       queryClient.invalidateQueries({
-        queryKey: SERIES_SUBSCRIPTIONS_QUERY_KEY,
+        queryKey: queryKeys.seriesSubscriptions,
       }),
     [queryClient],
   );

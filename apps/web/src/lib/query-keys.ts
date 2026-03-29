@@ -85,7 +85,8 @@ export const queryKeys = {
   },
   meetings: {
     all: ["meetings"] as const,
-    byMonth: (monthKey: number) => ["meetings", monthKey] as const,
+    byMonth: (monthKey: number) =>
+      [...queryKeys.meetings.all, monthKey] as const,
   },
   calendars: {
     all: ["calendars"] as const,
@@ -99,6 +100,7 @@ export const queryKeys = {
     all: (params: unknown) => ["conversations", params] as const,
     search: (...args: unknown[]) => ["conversation-search", ...args] as const,
   },
+  seriesSubscriptions: ["series-subscriptions"] as const,
   botSessions: {
     all: ["bot-sessions"] as const,
     byCalendarEvents: (calendarEventIds: string[]) =>

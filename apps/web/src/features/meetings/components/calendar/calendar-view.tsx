@@ -8,7 +8,7 @@ import type {
 import { getVisibleDates } from "@/features/meetings/lib/calendar-utils";
 import { useCalendarViewState } from "@/features/meetings/hooks/use-calendar-view-state";
 import { useTranslations } from "next-intl";
-import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { Suspense, useMemo, useState } from "react";
 import { MeetingDetailsModal } from "../meeting-details-modal";
 import { MeetingsList } from "../meetings/meetings-list";
@@ -113,77 +113,75 @@ function CalendarViewInner({
         onTimePeriodChange={handleTimePeriodChange}
       />
       <div ref={viewContainerRef} className="relative min-h-[400px]">
-        <LazyMotion features={domAnimation}>
-          <AnimatePresence mode="wait">
-            {effectiveView === "month" && (
-              <m.div
-                key="month-view"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-              >
-                {isLoading ? (
-                  loadingPlaceholder
-                ) : (
-                  <CalendarGrid
-                    currentDate={currentDate}
-                    meetings={calendarFilteredMeetings}
-                    onDayClick={handleDayClick}
-                    onMeetingClick={handleMeetingClick}
-                  />
-                )}
-              </m.div>
-            )}
+        <AnimatePresence mode="wait">
+          {effectiveView === "month" && (
+            <m.div
+              key="month-view"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              {isLoading ? (
+                loadingPlaceholder
+              ) : (
+                <CalendarGrid
+                  currentDate={currentDate}
+                  meetings={calendarFilteredMeetings}
+                  onDayClick={handleDayClick}
+                  onMeetingClick={handleMeetingClick}
+                />
+              )}
+            </m.div>
+          )}
 
-            {effectiveView === "list" && (
-              <m.div
-                key="list-view"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-              >
-                {isLoading ? (
-                  loadingPlaceholder
-                ) : loadMoreResult ? (
-                  <MeetingsList
-                    meetings={loadMoreResult.meetings}
-                    total={loadMoreResult.total}
-                    hasMore={loadMoreResult.hasMore}
-                    allMeetingsCount={meetingsWithSessions.length}
-                    isFiltered={
-                      selectedStatus !== "all" || timePeriod !== "upcoming"
-                    }
-                    onLoadMore={handleLoadMore}
-                    onClearFilters={handleClearFilters}
-                    onMeetingClick={handleMeetingClick}
-                  />
-                ) : null}
-              </m.div>
-            )}
+          {effectiveView === "list" && (
+            <m.div
+              key="list-view"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              {isLoading ? (
+                loadingPlaceholder
+              ) : loadMoreResult ? (
+                <MeetingsList
+                  meetings={loadMoreResult.meetings}
+                  total={loadMoreResult.total}
+                  hasMore={loadMoreResult.hasMore}
+                  allMeetingsCount={meetingsWithSessions.length}
+                  isFiltered={
+                    selectedStatus !== "all" || timePeriod !== "upcoming"
+                  }
+                  onLoadMore={handleLoadMore}
+                  onClearFilters={handleClearFilters}
+                  onMeetingClick={handleMeetingClick}
+                />
+              ) : null}
+            </m.div>
+          )}
 
-            {isTimeGridView(effectiveView) && (
-              <m.div
-                key={`${effectiveView}-view`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-              >
-                {isLoading ? (
-                  loadingPlaceholder
-                ) : (
-                  <CalendarTimeGrid
-                    dates={timeGridDates}
-                    meetings={calendarFilteredMeetings}
-                    onMeetingClick={handleMeetingClick}
-                  />
-                )}
-              </m.div>
-            )}
-          </AnimatePresence>
-        </LazyMotion>
+          {isTimeGridView(effectiveView) && (
+            <m.div
+              key={`${effectiveView}-view`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              {isLoading ? (
+                loadingPlaceholder
+              ) : (
+                <CalendarTimeGrid
+                  dates={timeGridDates}
+                  meetings={calendarFilteredMeetings}
+                  onMeetingClick={handleMeetingClick}
+                />
+              )}
+            </m.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <MeetingDetailsModal

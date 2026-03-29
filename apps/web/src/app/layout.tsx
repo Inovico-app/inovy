@@ -9,6 +9,7 @@ import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Geist } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "sonner";
+import { LazyMotion, domAnimation } from "motion/react";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
@@ -85,11 +86,13 @@ export default function RootLayout({
               <Suspense>
                 <IntlProvider>
                   <ThemeProvider>
-                    <VercelAnalytics />
-                    <VercelSpeedInsights />
-                    {children}
-                    <CookieConsent />
-                    <Toaster richColors />
+                    <LazyMotion features={domAnimation}>
+                      <VercelAnalytics />
+                      <VercelSpeedInsights />
+                      {children}
+                      <CookieConsent />
+                      <Toaster richColors />
+                    </LazyMotion>
                   </ThemeProvider>
                 </IntlProvider>
               </Suspense>

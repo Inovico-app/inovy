@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { queryKeys } from "@/lib/query-keys";
 import { getReprocessingStatusAction } from "../actions/reprocess-recording";
 import type { WorkflowStatus } from "@/server/db/schema/recordings";
@@ -8,7 +9,7 @@ import type { WorkflowStatus } from "@/server/db/schema/recordings";
 interface UseReprocessingStatusOptions {
   recordingId: string;
   enabled?: boolean;
-  pollingInterval?: number; // in milliseconds
+  pollingInterval?: number;
   onStatusChange?: (status: {
     isReprocessing: boolean;
     status?: string;
@@ -42,16 +43,18 @@ function isStatusActive(status: ReprocessingStatus | null): boolean {
 export function useReprocessingStatus({
   recordingId,
   enabled = true,
-  pollingInterval = 3000, // Default: 3 seconds
+  pollingInterval = 3000,
   onStatusChange,
 }: UseReprocessingStatusOptions): UseReprocessingStatusReturn {
-  const { data, error, isRefetching, refetch } = useQuery({
+  const prevStatusRef = useRef<ReprocessingStatus | null>(null);
+
+  const { data, error, isFetching, isRefetching, refetch } = useQuery({
     queryKey: queryKeys.recordings.reprocessingStatus(recordingId),
     queryFn: async () => {
       const result = await getReprocessingStatusAction({ recordingId });
 
       if (result?.data) {
-        const newStatus: ReprocessingStatus = {
+        return {
           isReprocessing: result.data.isReprocessing,
           workflowStatus: result.data.workflowStatus,
           workflowError: result.data.workflowError,
@@ -59,16 +62,7 @@ export function useReprocessingStatus({
           startedAt: result.data.startedAt,
           errorMessage: result.data.errorMessage,
           lastReprocessedAt: result.data.lastReprocessedAt,
-        };
-
-        // Notify of status change
-        onStatusChange?.({
-          isReprocessing: newStatus.isReprocessing,
-          status: newStatus.status,
-          errorMessage: newStatus.errorMessage,
-        });
-
-        return newStatus;
+        } satisfies ReprocessingStatus;
       }
 
       throw new Error("Failed to fetch reprocessing status");
@@ -76,20 +70,33 @@ export function useReprocessingStatus({
     enabled,
     refetchInterval: (query) => {
       const currentStatus = query.state.data;
-
-      // Stop polling once we reach a terminal state
       if (!isStatusActive(currentStatus ?? null)) {
         return false;
       }
-
       return pollingInterval;
     },
     refetchIntervalInBackground: false,
   });
 
   const reprocessingStatus = data ?? null;
+
+  useEffect(() => {
+    if (!reprocessingStatus) return;
+    const prev = prevStatusRef.current;
+    if (prev?.isReprocessing !== reprocessingStatus.isReprocessing) {
+      onStatusChange?.({
+        isReprocessing: reprocessingStatus.isReprocessing,
+        status: reprocessingStatus.status,
+        errorMessage: reprocessingStatus.errorMessage,
+      });
+    }
+    prevStatusRef.current = reprocessingStatus;
+  }, [reprocessingStatus, onStatusChange]);
+
   const isPolling =
-    enabled && isRefetching && isStatusActive(reprocessingStatus);
+    enabled &&
+    (isFetching || isRefetching) &&
+    isStatusActive(reprocessingStatus);
 
   return {
     reprocessingStatus,

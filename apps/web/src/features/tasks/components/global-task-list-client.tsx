@@ -2,7 +2,7 @@
 
 import type { TaskWithContextDto } from "@/server/dto/task.dto";
 import { queryKeys } from "@/lib/query-keys";
-import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useFilteredTasks } from "../hooks/use-filtered-tasks";
 import { useTaskCounts } from "../hooks/use-task-counts";
 import { useTaskFilters } from "../hooks/use-task-filters";
@@ -23,12 +23,9 @@ export function GlobalTaskListClient({
   initialProjects,
   currentUserId,
 }: GlobalTaskListClientProps) {
-  const { data: allTasks = [] } = useQuery({
-    queryKey: queryKeys.tasks.userTasks(),
-    queryFn: () => initialTasks,
-    initialData: initialTasks,
-    staleTime: Infinity,
-  });
+  const queryClient = useQueryClient();
+  queryClient.setQueryData(queryKeys.tasks.userTasks(), initialTasks);
+  const allTasks = initialTasks;
   const t = useTranslations("tasks");
   const projects = initialProjects;
 
