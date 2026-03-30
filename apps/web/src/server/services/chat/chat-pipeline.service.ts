@@ -30,7 +30,8 @@ import { stepCountIs, streamText } from "ai";
 import { err, ok } from "neverthrow";
 import { createGuardedModel } from "../../ai/middleware";
 import { moderateUserInput } from "../../ai/middleware/input-moderation.middleware";
-import { checkOutputGrounding } from "../../ai/middleware/output-grounding.middleware";
+import { GroundingClassifier } from "../../ai/classifiers/grounding.classifier";
+import { GroundingEnforcer } from "../../ai/classifiers/grounding-enforcer";
 import { getCachedProjectTemplate } from "../../cache/project-template.cache";
 import { AgentMetricsService } from "../agent-metrics.service";
 import { AgentTokenBudgetService } from "../agent-token-budget.service";
@@ -364,9 +365,27 @@ export class ChatPipeline {
           };
           await ChatQueries.createMessage(assistantMessageEntry);
 
-          // Check output grounding quality (non-blocking, metrics only)
-          const hadToolResults = (toolResults?.length ?? 0) > 0;
-          checkOutputGrounding(text, hadToolResults);
+          // Grounding enforcement (non-blocking for stream, logs results)
+          const groundingClassifier = new GroundingClassifier();
+          const groundingEnforcer = new GroundingEnforcer(groundingClassifier);
+
+          const groundingResult = await groundingEnforcer.enforce({
+            responseText: text,
+            context: toolResults ?? [],
+          });
+
+          if (
+            groundingResult.action === "annotate" &&
+            groundingResult.ungroundedClaims
+          ) {
+            logger.warn("Response contains ungrounded claims", {
+              component: "ChatPipeline",
+              conversationId,
+              ungroundedClaims: groundingResult.ungroundedClaims,
+              retried: groundingResult.retried,
+              groundedRatio: groundingResult.evaluation.groundedRatio,
+            });
+          }
 
           // Update conversation title if it's the first exchange
           if (conversationHistory.length === 1 && !conversation.title) {

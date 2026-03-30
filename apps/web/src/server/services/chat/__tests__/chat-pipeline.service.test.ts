@@ -63,11 +63,31 @@ vi.mock("../../../ai/middleware/input-moderation.middleware", () => ({
   moderateUserInput: (...a: unknown[]) => mockModerateUserInput(...a),
 }));
 
-vi.mock("../../../ai/middleware/output-grounding.middleware", () => ({
-  checkOutputGrounding: vi.fn().mockReturnValue({
-    isGrounded: true,
-    warnings: [],
-  }),
+vi.mock("../../../ai/classifiers/grounding.classifier", () => ({
+  GroundingClassifier: vi.fn().mockImplementation(() => ({
+    evaluate: vi.fn().mockResolvedValue({
+      overallGrounded: true,
+      groundedRatio: 1.0,
+      ungroundedClaims: [],
+      reasoning: "test",
+    }),
+  })),
+}));
+
+vi.mock("../../../ai/classifiers/grounding-enforcer", () => ({
+  GroundingEnforcer: vi.fn().mockImplementation(() => ({
+    enforce: vi.fn().mockResolvedValue({
+      action: "pass",
+      finalText: "test response",
+      retried: false,
+      evaluation: {
+        overallGrounded: true,
+        groundedRatio: 1.0,
+        ungroundedClaims: [],
+        reasoning: "test",
+      },
+    }),
+  })),
 }));
 
 vi.mock("../../../ai/middleware", () => ({
