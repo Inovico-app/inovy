@@ -14,7 +14,7 @@ import { getCachedUserProjects } from "@/server/cache/project.cache";
 import { AlertCircle } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
-async function ChatPageContent() {
+export default async function ChatPage() {
   const t = await getTranslations("chat");
   const { user, organizationId, userTeamIds } = await requirePermission(
     permissions.hasRole("user"),
@@ -68,8 +68,4 @@ async function ChatPageContent() {
       />
     </div>
   );
-}
-
-export default async function OrganizationChatPage() {
-  return await ChatPageContent();
 }

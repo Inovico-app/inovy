@@ -1,6 +1,17 @@
 import type { Metadata } from "next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamMemberManagement } from "@/features/teams/components/team-member-management";
+import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { requirePermission } from "@/lib/permissions/require-permission";
+import { canManageTeam } from "@/lib/permissions/presets";
+import { TeamQueries } from "@/server/data-access/teams.queries";
+import { Suspense } from "react";
+
+interface TeamMembersPageProps {
+  params: Promise<{
+    teamId: string;
+  }>;
+}
 
 export async function generateMetadata({
   params,
@@ -18,17 +29,6 @@ export async function generateMetadata({
   }
   return { title: "Team Members" };
 }
-import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { requirePermission } from "@/lib/permissions/require-permission";
-import { canAccessTeam } from "@/lib/permissions/presets";
-import { TeamQueries } from "@/server/data-access/teams.queries";
-import { Suspense } from "react";
-
-interface TeamMembersPageProps {
-  params: Promise<{
-    teamId: string;
-  }>;
-}
 
 async function TeamMembersContainer({
   params,
@@ -37,7 +37,7 @@ async function TeamMembersContainer({
 }) {
   const { teamId } = await params;
 
-  await requirePermission(canAccessTeam, { teamId });
+  await requirePermission(canManageTeam, { teamId });
 
   return <TeamMemberManagement teamId={teamId} />;
 }

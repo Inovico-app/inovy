@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TeamSettings } from "@/features/teams/components/team-settings";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { requirePermission } from "@/lib/permissions/require-permission";
-import { canAccessTeam } from "@/lib/permissions/presets";
+import { canManageTeam } from "@/lib/permissions/presets";
 import { TeamQueries } from "@/server/data-access/teams.queries";
 import { Suspense } from "react";
 
@@ -37,7 +37,7 @@ async function TeamSettingsContainer({
 }) {
   const { teamId } = await params;
 
-  await requirePermission(canAccessTeam, { teamId });
+  await requirePermission(canManageTeam, { teamId });
 
   return <TeamSettings teamId={teamId} />;
 }

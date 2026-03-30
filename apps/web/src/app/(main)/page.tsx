@@ -10,6 +10,7 @@ import { logger } from "@/lib/logger";
 import { permissions } from "@/lib/permissions/engine";
 import { requirePermission } from "@/lib/permissions/require-permission";
 import { OnboardingService } from "@/server/services/onboarding.service";
+import { redirect } from "next/navigation";
 import { getCachedBotSessionsByCalendarEventIds } from "@/server/cache/bot-sessions.cache";
 import { getCachedCalendarMeetings } from "@/server/cache/calendar-meetings.cache";
 import { getCachedDashboardOverview } from "@/server/cache/dashboard.cache";
@@ -38,7 +39,6 @@ async function DashboardContent() {
   }
 
   if (!user.onboardingCompleted) {
-    const { redirect } = await import("next/navigation");
     redirect("/onboarding");
   }
 
