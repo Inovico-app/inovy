@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = { title: "Chat" };
 import { UnifiedChatInterface } from "@/features/chat/components/unified-chat-interface";
-import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
+import { hasRole } from "@/lib/permissions/predicates";
 import { permissions } from "@/lib/permissions/engine";
 import { requirePermission } from "@/lib/permissions/require-permission";
 import {
@@ -16,12 +16,11 @@ import { getTranslations } from "next-intl/server";
 
 export default async function ChatPage() {
   const t = await getTranslations("chat");
-  const { user, organizationId, userTeamIds } = await requirePermission(
-    permissions.hasRole("user"),
-  );
+  const { subject, user, organizationId, userTeamIds } =
+    await requirePermission(permissions.hasRole("user"));
 
-  // Check if user is admin
-  const isAdmin = canAccessOrganizationChat(user);
+  // Check if user has admin-level access (uses member.role via subject)
+  const isAdmin = hasRole("admin").check(subject);
 
   // Get user's projects (cached), filtered by team context
   const projects = await getCachedUserProjects(organizationId, {

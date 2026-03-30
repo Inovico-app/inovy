@@ -8,7 +8,8 @@ import type { Column, SQL } from "drizzle-orm";
 import { inArray, isNull, or } from "drizzle-orm";
 import { logger } from "../logger";
 import { ActionErrors } from "../server-action-client/action-errors";
-import { isOrganizationAdmin } from "./rbac";
+import { hasRole } from "../permissions/predicates";
+import { isValidRole } from "../permissions/types";
 import type { BetterAuthUser } from "../auth";
 
 /**
@@ -25,7 +26,10 @@ export function buildTeamFilter(
   user: BetterAuthUser,
 ): SQL | undefined {
   // Org admins bypass team filtering
-  if (isOrganizationAdmin(user)) {
+  if (
+    isValidRole(user.role) &&
+    hasRole("admin").check({ role: user.role, userId: user.id })
+  ) {
     return undefined;
   }
 
@@ -60,7 +64,10 @@ export function assertTeamAccess(
   }
 
   // Org admins bypass team checks
-  if (isOrganizationAdmin(user)) {
+  if (
+    isValidRole(user.role) &&
+    hasRole("admin").check({ role: user.role, userId: user.id })
+  ) {
     return;
   }
 

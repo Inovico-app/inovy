@@ -3,7 +3,7 @@
  * Use Better Auth permission format directly in new code: { project: ["create"] }
  */
 
-import type { Permission } from "./rbac";
+type Permission = Record<string, string[]>;
 
 /**
  * Convert old policy string format to Better Auth permission format
@@ -54,4 +54,3 @@ export function policyToPermissions(policy: string): Permission {
     [mappedResource]: [mappedAction],
   };
 }
-
