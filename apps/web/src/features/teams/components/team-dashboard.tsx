@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/card";
 import { resolveAuthContext } from "@/lib/auth-context";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { isOrganizationAdmin, isTeamManager } from "@/lib/rbac/rbac";
+import { hasRole } from "@/lib/permissions/predicates";
+import { isValidRole } from "@/lib/permissions/types";
 import { getCachedTeamById } from "@/server/cache/team.cache";
 import { ProjectQueries } from "@/server/data-access/projects.queries";
 import type { ProjectWithRecordingCountDto } from "@/server/dto/project.dto";
@@ -73,8 +74,10 @@ export async function TeamDashboard({ teamId }: TeamDashboardProps) {
   }
 
   // Check permissions
-  const isAdmin = isOrganizationAdmin(user, member);
-  const isLead = await isTeamManager(user, teamId, member);
+  const memberRole = member && isValidRole(member.role) ? member.role : "user";
+  const subject = { role: memberRole, userId: user.id };
+  const isAdmin = hasRole("admin").check(subject);
+  const isLead = hasRole("manager").check(subject);
   const canManage = isAdmin || isLead;
 
   // Fetch team members with user details

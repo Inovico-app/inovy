@@ -1,9 +1,10 @@
 "use server";
 
 import { logger } from "@/lib/logger";
+import { hasRole } from "@/lib/permissions/predicates";
+import type { Role } from "@/lib/permissions/types";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
-import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { authorizedActionClient } from "@/lib/server-action-client/action-client";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
 import { OrganizationSettingsService } from "@/server/services/organization-settings.service";
@@ -68,7 +69,7 @@ export const updateOrganizationSettings = authorizedActionClient
     }
 
     // Check if user is admin
-    if (!isOrganizationAdmin(user)) {
+    if (!hasRole("admin").check({ role: user.role as Role, userId: user.id })) {
       throw ActionErrors.forbidden(
         "You must be an administrator to update organization settings",
       );

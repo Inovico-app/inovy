@@ -1,4 +1,6 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { hasExactRole } from "@/lib/permissions/predicates";
+import type { Role } from "@/lib/permissions/types";
 import { ModelProvenanceService } from "@/server/services/model-provenance.service";
 import { NextResponse } from "next/server";
 
@@ -21,7 +23,13 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (authResult.value.member.role !== "superadmin") {
+  const { member, user } = authResult.value;
+  if (
+    !hasExactRole("superadmin").check({
+      role: member.role as Role,
+      userId: user?.id ?? "",
+    })
+  ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

@@ -2,6 +2,7 @@
 
 import { useActiveMemberRole } from "@/hooks/use-active-member-role";
 import { signOut, useSession } from "@/lib/auth-client";
+import { usePermissions } from "@/lib/permissions/use-permissions";
 import { logger } from "@/lib/logger";
 import { Settings, Shield, User } from "lucide-react";
 import type { Route } from "next";
@@ -32,6 +33,7 @@ export function HeaderAuthButtons() {
   const tCommon = useTranslations("common");
 
   const isLoading = isPending ?? isRolePending;
+  const { hasRole } = usePermissions();
 
   const handleLoginClick = () => {
     logger.auth.loginAttempt({ component: "HeaderAuthButtons" });
@@ -95,8 +97,8 @@ export function HeaderAuthButtons() {
     // Get roles from Better Auth API via useActiveMemberRole hook
     const userRoles = roleData?.roles ?? ["user"];
     const firstRole = userRoles[0] ?? "user";
-    const isSuperAdmin = roleData?.roles.includes("superadmin") ?? false;
-    const isAdmin = roleData?.roles.includes("admin") ?? false;
+    const isSuperAdmin = hasRole("superadmin");
+    const isAdmin = hasRole("admin");
 
     return (
       <DropdownMenu>

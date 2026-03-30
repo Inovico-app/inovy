@@ -9,7 +9,8 @@ import {
 import { auth } from "@/lib/auth";
 import { ok, err } from "neverthrow";
 import { ActionErrors } from "@/lib/server-action-client/action-errors";
-import { isOrganizationAdmin } from "@/lib/rbac/rbac";
+import { hasRole } from "@/lib/permissions/predicates";
+import type { Role } from "@/lib/permissions/types";
 
 export interface UserTeam {
   id: string;
@@ -57,20 +58,28 @@ export const listUserTeamsAction = authorizedActionClient
         : [];
 
       // Get member role from the session for org-level admin check
-      const memberRole = sessionData?.session
+      const activeMember = sessionData?.session
         ? await (async () => {
             try {
-              const activeMember = await auth.api.getActiveMember({
+              return await auth.api.getActiveMember({
                 headers: requestHeaders,
               });
-              return activeMember ?? null;
             } catch {
               return null;
             }
           })()
         : null;
-      const isAdmin =
-        ctx.user != null && isOrganizationAdmin(ctx.user, memberRole);
+
+      const isAdmin = activeMember
+        ? hasRole("admin").check({
+            role: activeMember.role as Role,
+            userId: activeMember.userId,
+          })
+        : ctx.user != null &&
+          hasRole("admin").check({
+            role: ctx.user.role as Role,
+            userId: ctx.user.id,
+          });
 
       return resultToActionResponse(
         ok({

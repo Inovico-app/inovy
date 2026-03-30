@@ -4,6 +4,8 @@ import { db } from "@/server/db";
 import { organizations } from "@/server/db/schema/auth";
 import { OrganizationQueries } from "@/server/data-access/organization.queries";
 import { CacheTags, invalidateCache } from "@/lib/cache-utils";
+import { hasExactRole } from "@/lib/permissions/predicates";
+import type { Role } from "@/lib/permissions/types";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
@@ -57,7 +59,10 @@ export const scheduleOrganizationDeletion = authorizedActionClient
     if (
       ctx.organizationId &&
       ctx.organizationId !== organizationId &&
-      ctx.user.role !== "superadmin"
+      !hasExactRole("superadmin").check({
+        role: ctx.user.role as Role,
+        userId: ctx.user.id,
+      })
     ) {
       return resultToActionResponse(
         err(

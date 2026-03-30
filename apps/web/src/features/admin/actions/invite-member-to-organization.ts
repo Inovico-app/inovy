@@ -5,6 +5,8 @@ import OrganizationInvitationEmail from "@/emails/templates/organization-invitat
 import { auth } from "@/lib/auth";
 import type { AuthContext } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
+import { hasExactRole } from "@/lib/permissions/predicates";
+import type { Role } from "@/lib/permissions/types";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
@@ -113,13 +115,16 @@ export const inviteMemberToOrganization = authorizedActionClient
 
         if (
           errorMessage.includes("Member not found") &&
-          user?.role === "superadmin"
+          hasExactRole("superadmin").check({
+            role: user?.role as Role,
+            userId: user?.id ?? "",
+          })
         ) {
           logger.info(
             "Superadmin inviting member to organization they don't belong to. Using manual flow.",
             {
               organizationId,
-              adminId: user.id,
+              adminId: user?.id,
             },
           );
 
@@ -143,7 +148,7 @@ export const inviteMemberToOrganization = authorizedActionClient
             organizationId,
             email: email.toLowerCase(),
             role: role as OrganizationMemberRole,
-            inviterId: user.id,
+            inviterId: user!.id,
             status: "pending",
             expiresAt,
           });
@@ -178,8 +183,8 @@ export const inviteMemberToOrganization = authorizedActionClient
             react: OrganizationInvitationEmail({
               invitationUrl: inviteLink,
               organizationName: org.name,
-              inviterName: user.name,
-              inviterEmail: user.email,
+              inviterName: user!.name,
+              inviterEmail: user!.email,
               teamNames: teamNames.length > 0 ? teamNames : undefined,
             }),
           });
