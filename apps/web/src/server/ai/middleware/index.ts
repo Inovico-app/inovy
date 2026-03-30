@@ -22,24 +22,27 @@ import { createPIIOutputGuardMiddleware } from "./pii-output-guard.middleware";
 export { GuardrailError } from "./types";
 export type { GuardrailOptions, GuardrailViolation } from "./types";
 
-/**
- * Create middleware that runs the classifier registry for input classification.
- */
+const DEFAULT_CLASSIFIERS = [
+  new InjectionClassifier(),
+  new TopicClassifier(),
+  new RiskClassifier(),
+];
+
+const defaultRegistry = new ClassifierRegistry({
+  classifiers: DEFAULT_CLASSIFIERS,
+});
+
 function createClassifierMiddleware(
   options: GuardrailOptions = {},
 ): LanguageModelV3Middleware {
-  const classifierConfig = options.classifier?.config;
-  const orgPolicy = options.classifier?.orgPolicy;
-
-  const registry = new ClassifierRegistry({
-    classifiers: [
-      new InjectionClassifier(),
-      new TopicClassifier(),
-      new RiskClassifier(),
-    ],
-    config: classifierConfig,
-    orgPolicy,
-  });
+  const registry =
+    options.classifier?.orgPolicy || options.classifier?.config
+      ? new ClassifierRegistry({
+          classifiers: DEFAULT_CLASSIFIERS,
+          config: options.classifier.config,
+          orgPolicy: options.classifier.orgPolicy,
+        })
+      : defaultRegistry;
 
   return {
     specificationVersion: "v3",
@@ -63,10 +66,8 @@ function createClassifierMiddleware(
         },
       });
 
-      // Store verdicts in params for audit middleware to pick up
       (params as Record<string, unknown>).__classifierVerdicts =
         result.verdicts;
-      (params as Record<string, unknown>).__classifierResult = result;
 
       if (result.finalAction === "block") {
         logger.security.suspiciousActivity(

@@ -41,7 +41,6 @@ export class GroundingEnforcer {
   async enforce(
     input: GroundingEnforcerInput,
   ): Promise<GroundingEnforcerResult> {
-    // First evaluation
     const firstEval = await this.classifier.evaluate(
       input.responseText,
       input.context,
@@ -63,7 +62,6 @@ export class GroundingEnforcer {
       ungroundedClaimCount: firstEval.ungroundedClaims.length,
     });
 
-    // Retry if retryFn is provided
     if (!input.retryFn) {
       return {
         action: "annotate",
@@ -76,7 +74,6 @@ export class GroundingEnforcer {
 
     const retriedText = await input.retryFn(GROUNDING_RETRY_INSTRUCTION);
 
-    // Second evaluation
     const secondEval = await this.classifier.evaluate(
       retriedText,
       input.context,
@@ -91,7 +88,6 @@ export class GroundingEnforcer {
       };
     }
 
-    // Still ungrounded after retry — annotate
     logger.warn("Response still ungrounded after retry, annotating", {
       component: "GroundingEnforcer",
       groundedRatio: secondEval.groundedRatio,

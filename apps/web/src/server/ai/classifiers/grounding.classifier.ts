@@ -1,8 +1,7 @@
 import { logger } from "@/lib/logger";
+import { resilientModelProvider } from "@/server/services/resilient-model-provider.service";
 import { generateObject } from "ai";
 import { z } from "zod";
-
-import { connectionPool } from "@/server/services/connection-pool.service";
 
 import type {
   Classifier,
@@ -10,6 +9,7 @@ import type {
   ClassifierVerdict,
   GroundingEvaluation,
 } from "./types";
+import { CLASSIFIER_MODEL_ID } from "./utils";
 
 const GROUNDING_SCHEMA = z.object({
   overallGrounded: z.boolean(),
@@ -52,10 +52,12 @@ export class GroundingClassifier implements Classifier {
   readonly dimension = "grounding" as const;
 
   async classify(input: ClassifierInput): Promise<ClassifierVerdict> {
+    const startTime = Date.now();
     const evaluation = await this.evaluate(
       input.text,
       input.context.conversationHistory,
     );
+    const latencyMs = Date.now() - startTime;
 
     return {
       dimension: this.dimension,
@@ -63,8 +65,8 @@ export class GroundingClassifier implements Classifier {
       confidence: 1 - evaluation.groundedRatio,
       reasoning: evaluation.reasoning,
       classifierVersion: this.version,
-      latencyMs: 0, // set by caller
-      model: "claude-haiku-4-5-20251001",
+      latencyMs,
+      model: CLASSIFIER_MODEL_ID,
     };
   }
 
@@ -77,10 +79,13 @@ export class GroundingClassifier implements Classifier {
     try {
       const userPrompt = this.buildEvalPrompt(responseText, context);
 
-      const { object } = await connectionPool.withAnthropicAISdkClient(
-        async (anthropic) =>
+      const {
+        result: { object },
+      } = await resilientModelProvider.execute(
+        CLASSIFIER_MODEL_ID,
+        async (model) =>
           generateObject({
-            model: anthropic("claude-haiku-4-5-20251001"),
+            model,
             schema: GROUNDING_SCHEMA,
             system: SYSTEM_PROMPT,
             prompt: userPrompt,

@@ -29,12 +29,15 @@ const DEFAULT_BLOCK_MESSAGE =
 
 export class VerdictAggregator {
   private readonly thresholds: OrgGuardrailPolicy["thresholds"];
-  private readonly categoryOverrides: OrgGuardrailPolicy["categoryOverrides"];
+  private readonly categoryOverrideMap: Map<
+    string,
+    OrgGuardrailPolicy["categoryOverrides"][number]
+  >;
 
   constructor(policy?: OrgGuardrailPolicy) {
     this.thresholds = policy?.thresholds ?? DEFAULT_THRESHOLDS;
-    this.categoryOverrides =
-      policy?.categoryOverrides ?? DEFAULT_CATEGORY_OVERRIDES;
+    const overrides = policy?.categoryOverrides ?? DEFAULT_CATEGORY_OVERRIDES;
+    this.categoryOverrideMap = new Map(overrides.map((o) => [o.category, o]));
   }
 
   aggregate(verdicts: ClassifierVerdict[]): AggregationResult {
@@ -85,11 +88,8 @@ export class VerdictAggregator {
     action: "allow" | "warn" | "block";
     message?: string;
   } {
-    // Category overrides take priority
     if (verdict.category) {
-      const override = this.categoryOverrides.find(
-        (o) => o.category === verdict.category,
-      );
+      const override = this.categoryOverrideMap.get(verdict.category);
       if (override) {
         return {
           action: override.action,
@@ -98,7 +98,6 @@ export class VerdictAggregator {
       }
     }
 
-    // Apply threshold-based resolution
     const threshold = this.thresholds[verdict.dimension];
     if (!threshold) {
       return { action: "allow" };

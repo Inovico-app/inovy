@@ -1,10 +1,10 @@
 import { logger } from "@/lib/logger";
+import { resilientModelProvider } from "@/server/services/resilient-model-provider.service";
 import { generateObject } from "ai";
 import { z } from "zod";
 
-import { connectionPool } from "@/server/services/connection-pool.service";
-
 import type { Classifier, ClassifierInput, ClassifierVerdict } from "./types";
+import { CLASSIFIER_MODEL_ID, formatConversationHistory } from "./utils";
 
 const INJECTION_VERDICT_SCHEMA = z.object({
   detected: z.boolean(),
@@ -56,10 +56,13 @@ export class InjectionClassifier implements Classifier {
     try {
       const userPrompt = this.buildUserPrompt(input);
 
-      const { object } = await connectionPool.withAnthropicAISdkClient(
-        async (anthropic) =>
+      const {
+        result: { object },
+      } = await resilientModelProvider.execute(
+        CLASSIFIER_MODEL_ID,
+        async (model) =>
           generateObject({
-            model: anthropic("claude-haiku-4-5-20251001"),
+            model,
             schema: INJECTION_VERDICT_SCHEMA,
             system: SYSTEM_PROMPT,
             prompt: userPrompt,
@@ -77,7 +80,7 @@ export class InjectionClassifier implements Classifier {
         category: object.category ?? undefined,
         classifierVersion: this.version,
         latencyMs,
-        model: "claude-haiku-4-5-20251001",
+        model: CLASSIFIER_MODEL_ID,
       };
     } catch (error) {
       const latencyMs = Date.now() - startTime;
@@ -96,7 +99,7 @@ export class InjectionClassifier implements Classifier {
         reasoning: "Classifier error — defaulting to allow",
         classifierVersion: this.version,
         latencyMs,
-        model: "claude-haiku-4-5-20251001",
+        model: CLASSIFIER_MODEL_ID,
       };
     }
   }
@@ -108,18 +111,8 @@ export class InjectionClassifier implements Classifier {
       input.context.conversationHistory &&
       input.context.conversationHistory.length > 0
     ) {
-      const recentHistory = input.context.conversationHistory.slice(-6);
-      const historyText = recentHistory
-        .map((m) => {
-          const text = m.parts
-            .filter((p) => p.type === "text")
-            .map((p) => (p as { type: "text"; text: string }).text)
-            .join(" ");
-          return `[${m.role}]: ${text}`;
-        })
-        .join("\n");
       parts.push(
-        `<conversation_history>\n${historyText}\n</conversation_history>`,
+        formatConversationHistory(input.context.conversationHistory, 6),
       );
     }
 

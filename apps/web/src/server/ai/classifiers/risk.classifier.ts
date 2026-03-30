@@ -1,10 +1,10 @@
 import { logger } from "@/lib/logger";
+import { resilientModelProvider } from "@/server/services/resilient-model-provider.service";
 import { generateObject } from "ai";
 import { z } from "zod";
 
-import { connectionPool } from "@/server/services/connection-pool.service";
-
 import type { Classifier, ClassifierInput, ClassifierVerdict } from "./types";
+import { CLASSIFIER_MODEL_ID, formatConversationHistory } from "./utils";
 
 const RISK_VERDICT_SCHEMA = z.object({
   riskLevel: z.enum(["low", "medium", "high", "critical"]),
@@ -60,10 +60,13 @@ export class RiskClassifier implements Classifier {
     try {
       const userPrompt = this.buildUserPrompt(input);
 
-      const { object } = await connectionPool.withAnthropicAISdkClient(
-        async (anthropic) =>
+      const {
+        result: { object },
+      } = await resilientModelProvider.execute(
+        CLASSIFIER_MODEL_ID,
+        async (model) =>
           generateObject({
-            model: anthropic("claude-haiku-4-5-20251001"),
+            model,
             schema: RISK_VERDICT_SCHEMA,
             system: SYSTEM_PROMPT,
             prompt: userPrompt,
@@ -81,7 +84,7 @@ export class RiskClassifier implements Classifier {
         category: object.category ?? undefined,
         classifierVersion: this.version,
         latencyMs,
-        model: "claude-haiku-4-5-20251001",
+        model: CLASSIFIER_MODEL_ID,
       };
     } catch (error) {
       const latencyMs = Date.now() - startTime;
@@ -99,7 +102,7 @@ export class RiskClassifier implements Classifier {
         reasoning: "Classifier error — defaulting to allow",
         classifierVersion: this.version,
         latencyMs,
-        model: "claude-haiku-4-5-20251001",
+        model: CLASSIFIER_MODEL_ID,
       };
     }
   }
@@ -113,18 +116,8 @@ export class RiskClassifier implements Classifier {
       input.context.conversationHistory &&
       input.context.conversationHistory.length > 0
     ) {
-      const recentHistory = input.context.conversationHistory.slice(-4);
-      const historyText = recentHistory
-        .map((m) => {
-          const text = m.parts
-            .filter((p) => p.type === "text")
-            .map((p) => (p as { type: "text"; text: string }).text)
-            .join(" ");
-          return `[${m.role}]: ${text}`;
-        })
-        .join("\n");
       parts.push(
-        `<conversation_history>\n${historyText}\n</conversation_history>`,
+        formatConversationHistory(input.context.conversationHistory, 4),
       );
     }
 

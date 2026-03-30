@@ -30,8 +30,8 @@ import { stepCountIs, streamText } from "ai";
 import { err, ok } from "neverthrow";
 import { createGuardedModel } from "../../ai/middleware";
 import { moderateUserInput } from "../../ai/middleware/input-moderation.middleware";
-import { GroundingClassifier } from "../../ai/classifiers/grounding.classifier";
 import { GroundingEnforcer } from "../../ai/classifiers/grounding-enforcer";
+import { GroundingClassifier } from "../../ai/classifiers/grounding.classifier";
 import { getCachedProjectTemplate } from "../../cache/project-template.cache";
 import { AgentMetricsService } from "../agent-metrics.service";
 import { AgentTokenBudgetService } from "../agent-token-budget.service";
@@ -57,6 +57,14 @@ import type {
   ChatScope,
   ChatStreamResult,
 } from "./types";
+
+let _groundingEnforcer: GroundingEnforcer | null = null;
+function getGroundingEnforcer(): GroundingEnforcer {
+  if (!_groundingEnforcer) {
+    _groundingEnforcer = new GroundingEnforcer(new GroundingClassifier());
+  }
+  return _groundingEnforcer;
+}
 
 export class ChatPipeline {
   /**
@@ -365,11 +373,7 @@ export class ChatPipeline {
           };
           await ChatQueries.createMessage(assistantMessageEntry);
 
-          // Grounding enforcement (non-blocking for stream, logs results)
-          const groundingClassifier = new GroundingClassifier();
-          const groundingEnforcer = new GroundingEnforcer(groundingClassifier);
-
-          const groundingResult = await groundingEnforcer.enforce({
+          const groundingResult = await getGroundingEnforcer().enforce({
             responseText: text,
             context: toolResults ?? [],
           });

@@ -1,10 +1,10 @@
 import { logger } from "@/lib/logger";
+import { resilientModelProvider } from "@/server/services/resilient-model-provider.service";
 import { generateObject } from "ai";
 import { z } from "zod";
 
-import { connectionPool } from "@/server/services/connection-pool.service";
-
 import type { Classifier, ClassifierInput, ClassifierVerdict } from "./types";
+import { CLASSIFIER_MODEL_ID } from "./utils";
 
 const TOPIC_VERDICT_SCHEMA = z.object({
   classification: z.enum([
@@ -67,10 +67,13 @@ export class TopicClassifier implements Classifier {
     const startTime = Date.now();
 
     try {
-      const { object } = await connectionPool.withAnthropicAISdkClient(
-        async (anthropic) =>
+      const {
+        result: { object },
+      } = await resilientModelProvider.execute(
+        CLASSIFIER_MODEL_ID,
+        async (model) =>
           generateObject({
-            model: anthropic("claude-haiku-4-5-20251001"),
+            model,
             schema: TOPIC_VERDICT_SCHEMA,
             system: SYSTEM_PROMPT,
             prompt: `<message_to_classify>\n${input.text}\n</message_to_classify>`,
@@ -88,7 +91,7 @@ export class TopicClassifier implements Classifier {
         category: object.category ?? undefined,
         classifierVersion: this.version,
         latencyMs,
-        model: "claude-haiku-4-5-20251001",
+        model: CLASSIFIER_MODEL_ID,
       };
     } catch (error) {
       const latencyMs = Date.now() - startTime;
@@ -106,7 +109,7 @@ export class TopicClassifier implements Classifier {
         reasoning: "Classifier error — defaulting to allow",
         classifierVersion: this.version,
         latencyMs,
-        model: "claude-haiku-4-5-20251001",
+        model: CLASSIFIER_MODEL_ID,
       };
     }
   }

@@ -126,12 +126,17 @@ export class ClassifierRegistry {
     classifier: Classifier,
     input: ClassifierInput,
   ): Promise<{ verdict?: ClassifierVerdict; timedOut: boolean }> {
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+
     const timeoutPromise = new Promise<{
       verdict?: ClassifierVerdict;
       timedOut: boolean;
-    }>((resolve) =>
-      setTimeout(() => resolve({ timedOut: true }), this.config.timeoutMs),
-    );
+    }>((resolve) => {
+      timeoutHandle = setTimeout(
+        () => resolve({ timedOut: true }),
+        this.config.timeoutMs,
+      );
+    });
 
     const classifyPromise = classifier
       .classify(input)
@@ -149,7 +154,9 @@ export class ClassifierRegistry {
         return { timedOut: false } as const;
       });
 
-    return Promise.race([classifyPromise, timeoutPromise]);
+    return Promise.race([classifyPromise, timeoutPromise]).finally(() => {
+      clearTimeout(timeoutHandle);
+    });
   }
 
   private async runShadowClassifiers(
