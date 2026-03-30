@@ -1,5 +1,10 @@
 import type { LanguageModelV3CallOptions } from "@ai-sdk/provider";
 
+import type {
+  ClassifierRegistryConfig,
+  OrgGuardrailPolicy,
+} from "../classifiers/types";
+
 export interface GuardrailOptions {
   organizationId?: string;
   userId?: string;
@@ -23,10 +28,15 @@ export interface GuardrailOptions {
   audit?: {
     enabled: boolean;
   };
+  classifier?: {
+    enabled: boolean;
+    config?: Partial<ClassifierRegistryConfig>;
+    orgPolicy?: OrgGuardrailPolicy;
+  };
 }
 
 export interface GuardrailViolation {
-  type: "moderation" | "pii" | "injection" | "topic";
+  type: "moderation" | "pii" | "injection" | "topic" | "classifier";
   severity: "block" | "warn";
   message: string;
   details?: Record<string, unknown>;
@@ -46,7 +56,7 @@ export class GuardrailError extends Error {
  * Extract all text from the prompt messages in LanguageModelV3CallOptions.
  */
 export function extractTextFromPrompt(
-  params: LanguageModelV3CallOptions
+  params: LanguageModelV3CallOptions,
 ): string {
   if (!params.prompt || params.prompt.length === 0) {
     return "";
@@ -71,7 +81,7 @@ export function extractTextFromPrompt(
  * Extract the text content of the last user message from the prompt.
  */
 export function extractLastUserMessage(
-  params: LanguageModelV3CallOptions
+  params: LanguageModelV3CallOptions,
 ): string {
   for (let i = params.prompt.length - 1; i >= 0; i--) {
     const message = params.prompt[i];
@@ -97,13 +107,12 @@ export function extractLastUserMessage(
  * rather than a single `.text` string.
  */
 export function extractTextFromContent(
-  content: Array<{ type: string; text?: string }>
+  content: Array<{ type: string; text?: string }>,
 ): string {
   return content
     .filter(
-      (block): block is { type: "text"; text: string } => block.type === "text"
+      (block): block is { type: "text"; text: string } => block.type === "text",
     )
     .map((block) => block.text)
     .join("");
 }
-
