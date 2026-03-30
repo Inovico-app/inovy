@@ -14,7 +14,7 @@ import {
 } from "./types";
 
 export function createAuditMiddleware(
-  options: GuardrailOptions = {}
+  options: GuardrailOptions = {},
 ): LanguageModelV3Middleware {
   return {
     specificationVersion: "v3",
@@ -22,6 +22,8 @@ export function createAuditMiddleware(
     async wrapGenerate({ doGenerate, params }) {
       const startTime = Date.now();
       const userMessage = extractLastUserMessage(params);
+      const classifierVerdicts = (params as Record<string, unknown>)
+        .__classifierVerdicts;
       const result = await doGenerate();
       const latencyMs = Date.now() - startTime;
 
@@ -37,6 +39,7 @@ export function createAuditMiddleware(
         },
         latencyMs,
         requestType: options.requestType ?? "chat",
+        classifierVerdicts,
       });
 
       return result;
@@ -45,6 +48,8 @@ export function createAuditMiddleware(
     async wrapStream({ doStream, params }) {
       const startTime = Date.now();
       const userMessage = extractLastUserMessage(params);
+      const classifierVerdicts = (params as Record<string, unknown>)
+        .__classifierVerdicts;
       const { stream, ...rest } = await doStream();
 
       let generatedText = "";
@@ -84,6 +89,7 @@ export function createAuditMiddleware(
             output: generatedText,
             latencyMs,
             requestType: options.requestType ?? "chat",
+            classifierVerdicts,
           });
         },
       });
@@ -106,6 +112,7 @@ async function logAuditEntry(params: {
   };
   latencyMs: number;
   requestType: string;
+  classifierVerdicts?: unknown;
 }): Promise<void> {
   const { options, input, output, tokenUsage, latencyMs, requestType } = params;
 
@@ -131,6 +138,7 @@ async function logAuditEntry(params: {
         latencyMs,
         requestType,
         conversationId: options.conversationId,
+        classifierVerdicts: params.classifierVerdicts,
       },
     };
 
@@ -142,4 +150,3 @@ async function logAuditEntry(params: {
     });
   }
 }
-

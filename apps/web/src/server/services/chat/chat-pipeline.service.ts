@@ -30,7 +30,8 @@ import { stepCountIs, streamText } from "ai";
 import { err, ok } from "neverthrow";
 import { createGuardedModel } from "../../ai/middleware";
 import { moderateUserInput } from "../../ai/middleware/input-moderation.middleware";
-import { checkOutputGrounding } from "../../ai/middleware/output-grounding.middleware";
+import { GroundingEnforcer } from "../../ai/classifiers/grounding-enforcer";
+import { GroundingClassifier } from "../../ai/classifiers/grounding.classifier";
 import { getCachedProjectTemplate } from "../../cache/project-template.cache";
 import { AgentMetricsService } from "../agent-metrics.service";
 import { AgentTokenBudgetService } from "../agent-token-budget.service";
@@ -56,6 +57,14 @@ import type {
   ChatScope,
   ChatStreamResult,
 } from "./types";
+
+let _groundingEnforcer: GroundingEnforcer | null = null;
+function getGroundingEnforcer(): GroundingEnforcer {
+  if (!_groundingEnforcer) {
+    _groundingEnforcer = new GroundingEnforcer(new GroundingClassifier());
+  }
+  return _groundingEnforcer;
+}
 
 export class ChatPipeline {
   /**
@@ -364,9 +373,23 @@ export class ChatPipeline {
           };
           await ChatQueries.createMessage(assistantMessageEntry);
 
-          // Check output grounding quality (non-blocking, metrics only)
-          const hadToolResults = (toolResults?.length ?? 0) > 0;
-          checkOutputGrounding(text, hadToolResults);
+          const groundingResult = await getGroundingEnforcer().enforce({
+            responseText: text,
+            context: toolResults ?? [],
+          });
+
+          if (
+            groundingResult.action === "annotate" &&
+            groundingResult.ungroundedClaims
+          ) {
+            logger.warn("Response contains ungrounded claims", {
+              component: "ChatPipeline",
+              conversationId,
+              ungroundedClaims: groundingResult.ungroundedClaims,
+              retried: groundingResult.retried,
+              groundedRatio: groundingResult.evaluation.groundedRatio,
+            });
+          }
 
           // Update conversation title if it's the first exchange
           if (conversationHistory.length === 1 && !conversation.title) {

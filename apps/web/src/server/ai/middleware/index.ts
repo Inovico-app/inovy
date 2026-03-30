@@ -1,17 +1,118 @@
-import type { LanguageModelV3 } from "@ai-sdk/provider";
+import type {
+  LanguageModelV3,
+  LanguageModelV3Middleware,
+} from "@ai-sdk/provider";
 import { wrapLanguageModel } from "ai";
 
+import { logger } from "@/lib/logger";
+
+import { ClassifierRegistry } from "../classifiers/classifier-registry";
+import { InjectionClassifier } from "../classifiers/injection.classifier";
+import { RiskClassifier } from "../classifiers/risk.classifier";
+import { TopicClassifier } from "../classifiers/topic.classifier";
+import { extractLastUserMessage, GuardrailError } from "./types";
+import type { GuardrailOptions } from "./types";
+
 import { createAuditMiddleware } from "./audit.middleware";
-import { createInjectionGuardMiddleware } from "./injection-guard.middleware";
 import { createInputModerationMiddleware } from "./input-moderation.middleware";
 import { createOutputValidationMiddleware } from "./output-validation.middleware";
 import { createPIIInputGuardMiddleware } from "./pii-input-guard.middleware";
 import { createPIIOutputGuardMiddleware } from "./pii-output-guard.middleware";
-import { createTopicGuardMiddleware } from "./topic-guard.middleware";
-import type { GuardrailOptions } from "./types";
 
 export { GuardrailError } from "./types";
 export type { GuardrailOptions, GuardrailViolation } from "./types";
+
+const DEFAULT_CLASSIFIERS = [
+  new InjectionClassifier(),
+  new TopicClassifier(),
+  new RiskClassifier(),
+];
+
+const defaultRegistry = new ClassifierRegistry({
+  classifiers: DEFAULT_CLASSIFIERS,
+});
+
+function createClassifierMiddleware(
+  options: GuardrailOptions = {},
+): LanguageModelV3Middleware {
+  const registry =
+    options.classifier?.orgPolicy || options.classifier?.config
+      ? new ClassifierRegistry({
+          classifiers: DEFAULT_CLASSIFIERS,
+          config: options.classifier.config,
+          orgPolicy: options.classifier.orgPolicy,
+        })
+      : defaultRegistry;
+
+  return {
+    specificationVersion: "v3",
+
+    async transformParams({ params }) {
+      const userMessage = extractLastUserMessage(params);
+
+      if (!userMessage || userMessage.length === 0) {
+        return params;
+      }
+
+      const result = await registry.evaluate({
+        text: userMessage,
+        context: {
+          scope: options.chatContext ?? "project",
+        },
+        metadata: {
+          organizationId: options.organizationId ?? "",
+          userId: options.userId ?? "",
+          conversationId: options.conversationId ?? "",
+        },
+      });
+
+      (params as Record<string, unknown>).__classifierVerdicts =
+        result.verdicts;
+
+      if (result.finalAction === "block") {
+        logger.security.suspiciousActivity(
+          "Classifier registry blocked request",
+          {
+            component: "ClassifierMiddleware",
+            blockedBy: result.blockedBy,
+            totalLatencyMs: result.totalLatencyMs,
+            verdictCount: result.verdicts.length,
+          },
+        );
+
+        throw new GuardrailError({
+          type: "classifier",
+          severity: "block",
+          message:
+            result.blockMessage ??
+            "Your message was blocked by our content safety system. Please rephrase your request.",
+          details: {
+            blockedBy: result.blockedBy,
+            verdicts: result.verdicts.map((v) => ({
+              dimension: v.dimension,
+              action: v.action,
+              confidence: v.confidence,
+            })),
+          },
+        });
+      }
+
+      if (result.finalAction === "warn") {
+        logger.info("Classifier registry issued warning", {
+          component: "ClassifierMiddleware",
+          totalLatencyMs: result.totalLatencyMs,
+          verdicts: result.verdicts.map((v) => ({
+            dimension: v.dimension,
+            action: v.action,
+            confidence: v.confidence,
+          })),
+        });
+      }
+
+      return params;
+    },
+  };
+}
 
 /**
  * Wrap a language model with the full guardrails middleware stack.
@@ -19,23 +120,23 @@ export type { GuardrailOptions, GuardrailViolation } from "./types";
  * Middleware execution order (first to last):
  *   1. Input moderation  (OpenAI Moderation API)
  *   2. PII input guard   (redact / block PII in user message)
- *   3. Injection guard    (block prompt injection attempts)
- *   4. Topic guard        (block off-topic / dangerous requests)
- *   5. PII output guard   (redact PII in model response)
- *   6. Output validation  (moderate model response)
- *   7. Audit              (log input + output)
+ *   3. Classifier guard   (LLM-based injection, topic, risk classification)
+ *   4. PII output guard   (redact PII in model response)
+ *   5. Output validation  (moderate model response)
+ *   6. Audit              (log input + output + classifier verdicts)
  */
 export function createGuardedModel(
   model: LanguageModelV3,
-  options: GuardrailOptions = {}
+  options: GuardrailOptions = {},
 ): LanguageModelV3 {
+  const useClassifiers = options.classifier?.enabled !== false;
+
   return wrapLanguageModel({
     model,
     middleware: [
       createInputModerationMiddleware(),
       createPIIInputGuardMiddleware(options),
-      createInjectionGuardMiddleware(),
-      createTopicGuardMiddleware(),
+      ...(useClassifiers ? [createClassifierMiddleware(options)] : []),
       createPIIOutputGuardMiddleware(options),
       createOutputValidationMiddleware(),
       ...(options.audit?.enabled !== false
@@ -44,4 +145,3 @@ export function createGuardedModel(
     ],
   });
 }
-

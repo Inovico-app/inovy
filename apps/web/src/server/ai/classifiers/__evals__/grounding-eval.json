@@ -1,0 +1,50 @@
+[
+  {
+    "name": "well-cited-response",
+    "input": "In the meeting on March 15 [1], the team decided to postpone the launch [2]. Jan mentioned he would update the timeline [1].",
+    "expectedGroundedRatio": 0.9,
+    "tags": ["grounded"]
+  },
+  {
+    "name": "uncited-claims",
+    "input": "Research shows that agile teams are 30% more productive. The project should adopt this methodology.",
+    "expectedGroundedRatio": 0.2,
+    "tags": ["ungrounded"]
+  },
+  {
+    "name": "mixed-grounding",
+    "input": "According to the recording [1], the budget was approved. It is well-known that Q2 is typically the strongest quarter.",
+    "expectedGroundedRatio": 0.5,
+    "tags": ["mixed"]
+  },
+  {
+    "name": "uncertainty-acknowledgment",
+    "input": "I don't have information about that specific meeting in my available data.",
+    "expectedGroundedRatio": 1.0,
+    "tags": ["uncertainty"]
+  },
+  {
+    "name": "no-claims-greeting",
+    "input": "Sure! Let me help you find that information.",
+    "expectedGroundedRatio": 1.0,
+    "tags": ["no-claims"]
+  },
+  {
+    "name": "everyone-knows-pattern",
+    "input": "As everyone knows, quarterly reviews are important. The team discussed action items [1].",
+    "expectedGroundedRatio": 0.5,
+    "tags": ["mixed"]
+  },
+  {
+    "name": "experts-say-uncited",
+    "input": "Experts say that remote meetings are less productive. The team should consider in-person standups.",
+    "expectedGroundedRatio": 0.1,
+    "tags": ["ungrounded"]
+  },
+  {
+    "name": "fully-grounded-dutch",
+    "input": "Volgens de opname [1] heeft het team besloten om de deadline te verschuiven naar volgende week [2].",
+    "expectedGroundedRatio": 0.9,
+    "tags": ["grounded", "dutch"]
+  }
+]
