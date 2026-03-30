@@ -10,9 +10,10 @@ export const metadata: Metadata = {
   title: "User Management",
   description: "Manage organization users and team assignments",
 };
+import { hasRole } from "@/lib/permissions/predicates";
+import type { Role } from "@/lib/permissions/types";
 import { Permissions } from "@/lib/rbac/permissions";
 import { checkPermission } from "@/lib/rbac/permissions-server";
-import { isOrganizationAdmin } from "@/lib/rbac/rbac";
 import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
 import { OrganizationService } from "@/server/services/organization.service";
 import { TeamService } from "@/server/services/team.service";
@@ -49,8 +50,17 @@ async function TeamAssignmentTab() {
   }
 
   const auth = authCtxResult.value;
-  const { organization, user } = sessionResult.value;
-  const canEdit = user ? isOrganizationAdmin(user) : false;
+  const { organization, member, user } = sessionResult.value;
+
+  // Prefer member.role (org-level, authoritative) over user.role (global)
+  const canEdit = member
+    ? hasRole("admin").check({
+        role: member.role as Role,
+        userId: member.userId,
+      })
+    : user
+      ? hasRole("admin").check({ role: user.role as Role, userId: user.id })
+      : false;
 
   // Fetch members and teams
   const membersResult = await OrganizationService.getOrganizationMembers(

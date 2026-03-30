@@ -1,5 +1,6 @@
 "use server";
 
+import { ROLE_HIERARCHY, type Role } from "@/lib/permissions/types";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
@@ -66,7 +67,8 @@ export const updateAgentConfig = authorizedActionClient
         const members =
           await OrganizationQueries.getMembersDirect(organizationId);
         const adminMembers = members.filter(
-          (member) => member.role === "admin" || member.role === "owner",
+          (member) =>
+            (ROLE_HIERARCHY[member.role as Role] ?? 0) >= ROLE_HIERARCHY.admin,
         );
 
         // Send email to each admin/owner

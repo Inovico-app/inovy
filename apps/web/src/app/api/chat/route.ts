@@ -2,7 +2,8 @@ import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { logger, serializeError } from "@/lib/logger";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { assertOrganizationAccess } from "@/lib/rbac/organization-isolation";
-import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
+import { hasRole } from "@/lib/permissions/predicates";
+import type { Role } from "@/lib/permissions/types";
 import { GuardrailError } from "@/server/ai/middleware";
 import { moderateUserInput } from "@/server/ai/middleware/input-moderation.middleware";
 import { AgentConfigService } from "@/server/services/agent-config.service";
@@ -168,8 +169,11 @@ export async function POST(request: NextRequest) {
 
     // Validate context-specific requirements
     if (context === "organization") {
-      // Check if user has access to organization chat
-      const hasAccess = canAccessOrganizationChat(user);
+      // Check if user has access to organization chat (requires at least "user" role)
+      const hasAccess = hasRole("user").check({
+        role: member.role as Role,
+        userId: user.id,
+      });
 
       // Log access attempt
       await ChatAuditService.logChatAccess({

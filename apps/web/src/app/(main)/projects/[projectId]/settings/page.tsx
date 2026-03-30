@@ -12,7 +12,8 @@ import { ProjectKnowledgeBaseSection } from "@/features/knowledge-base/component
 import { EditProjectForm } from "@/features/projects/components/edit-project-form";
 import { ProjectTemplateSection } from "@/features/projects/components/project-templates/project-template-section";
 import { resolveAuthContext } from "@/lib/auth-context";
-import { isProjectManager } from "@/lib/rbac/rbac";
+import { hasRole } from "@/lib/permissions/predicates";
+import type { Role } from "@/lib/permissions/types";
 import {
   getCachedHierarchicalKnowledge,
   getCachedKnowledgeDocuments,
@@ -74,11 +75,16 @@ async function ProjectSettings({ params }: ProjectSettingsPageProps) {
 
   const project = projectResult.value;
   const t = await getTranslations("projects");
-  const canEdit = await isProjectManager(
-    authResult.value.user,
-    projectId,
-    authResult.value.member,
-  );
+  const { member } = authResult.value;
+  const canEdit = member
+    ? hasRole("manager").check({
+        role: member.role as Role,
+        userId: member.userId,
+      })
+    : hasRole("manager").check({
+        role: authResult.value.user.role as Role,
+        userId: authResult.value.user.id,
+      });
 
   const [projectEntries, projectDocuments, hierarchicalEntries] =
     await Promise.all([

@@ -1,4 +1,6 @@
 import { getBetterAuthSession } from "@/lib/better-auth-session";
+import { hasExactRole } from "@/lib/permissions/predicates";
+import type { Role } from "@/lib/permissions/types";
 import { logger } from "@/lib/logger";
 import { AgentKillSwitchService } from "@/server/services/agent-kill-switch.service";
 import { NextResponse } from "next/server";
@@ -24,7 +26,12 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (authResult.value.member.role !== "superadmin") {
+  if (
+    !hasExactRole("superadmin").check({
+      role: authResult.value.member.role as Role,
+      userId: authResult.value.user?.id ?? "",
+    })
+  ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -50,7 +57,12 @@ export async function POST(request: Request) {
 
   const { member, user } = authResult.value;
 
-  if (member.role !== "superadmin") {
+  if (
+    !hasExactRole("superadmin").check({
+      role: member.role as Role,
+      userId: user?.id ?? "",
+    })
+  ) {
     logger.security.unauthorizedAccess({
       userId: user?.id ?? "unknown",
       resource: "agent-kill-switch",
@@ -64,10 +76,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      { error: "Malformed JSON body" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Malformed JSON body" }, { status: 400 });
   }
 
   const parsed = killSwitchSchema.safeParse(body);
@@ -75,16 +84,18 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid request", details: parsed.error },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  const success = await AgentKillSwitchService.setKillSwitch(parsed.data.active);
+  const success = await AgentKillSwitchService.setKillSwitch(
+    parsed.data.active,
+  );
 
   if (!success) {
     return NextResponse.json(
       { error: "Failed to update kill switch — Redis unavailable" },
-      { status: 503 }
+      { status: 503 },
     );
   }
 

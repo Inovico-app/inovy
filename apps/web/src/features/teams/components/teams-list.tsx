@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateShort } from "@/lib/formatters/date-formatters";
 import type { AuthContext } from "@/lib/auth-context";
 import { getBetterAuthSession } from "@/lib/better-auth-session";
-import { isOrganizationAdmin } from "@/lib/rbac/rbac";
+import { hasRole } from "@/lib/permissions/predicates";
+import { isValidRole } from "@/lib/permissions/types";
 import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
 import { CalendarIcon, PlusIcon, UsersIcon } from "lucide-react";
 import Link from "next/link";
@@ -26,7 +27,8 @@ export async function TeamsList() {
   }
 
   const { user, member, organization, userTeamIds } = authResult.value;
-  const isAdmin = isOrganizationAdmin(user, member);
+  const memberRole = member && isValidRole(member.role) ? member.role : "user";
+  const isAdmin = hasRole("admin").check({ role: memberRole, userId: user.id });
 
   const auth: AuthContext = {
     user,

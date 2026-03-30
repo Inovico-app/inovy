@@ -1,7 +1,8 @@
 "use server";
 
 import { logger } from "@/lib/logger";
-import { isOrganizationAdmin } from "@/lib/rbac/rbac";
+import { hasRole } from "@/lib/permissions/predicates";
+import type { Role } from "@/lib/permissions/types";
 import { policyToPermissions } from "@/lib/rbac/permission-helpers";
 import {
   authorizedActionClient,
@@ -56,7 +57,7 @@ export const addBotToMeeting = authorizedActionClient
     if (
       teamId &&
       !ctx.userTeamIds?.includes(teamId) &&
-      !isOrganizationAdmin(user)
+      !hasRole("admin").check({ role: user.role as Role, userId: user.id })
     ) {
       throw ActionErrors.forbidden(
         "Not a member of this team",
