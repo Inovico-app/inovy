@@ -19,7 +19,7 @@ import type { CachePolicy } from "../cache/types";
 import { generateApplicationErrorMessage } from "../error-messages";
 import { logger } from "../logger";
 import { checkPermission } from "../rbac/permissions-server";
-import { type SessionWithRoles } from "../rbac/rbac";
+import type { BetterAuthSessionData } from "../better-auth-session";
 import {
   ActionErrors,
   type ActionError,
@@ -52,7 +52,7 @@ export type Metadata = z.infer<typeof schemaMetadata>;
  */
 export interface ActionContext {
   logger: typeof logger;
-  session?: SessionWithRoles;
+  session?: Result<BetterAuthSessionData, string>;
   user?: BetterAuthUser;
   organizationId?: string;
   userTeamIds?: string[];
