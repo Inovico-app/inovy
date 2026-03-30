@@ -1,4 +1,3 @@
-import { ProtectedPage } from "@/components/protected-page";
 import { DashboardGetStarted } from "@/features/dashboard/components/dashboard-get-started";
 import type { Metadata } from "next";
 import { DashboardGreeting } from "@/features/dashboard/components/dashboard-greeting";
@@ -6,9 +5,12 @@ import { DashboardPendingTasks } from "@/features/dashboard/components/dashboard
 import { DashboardRecentRecordings } from "@/features/dashboard/components/dashboard-recent-recordings";
 import { DashboardStats } from "@/features/dashboard/components/dashboard-stats";
 import { DashboardUpcomingMeetings } from "@/features/dashboard/components/dashboard-upcoming-meetings";
-import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { filterTasksByStatus } from "@/lib/filters/task-filters";
 import { logger } from "@/lib/logger";
+import { permissions } from "@/lib/permissions/engine";
+import { requirePermission } from "@/lib/permissions/require-permission";
+import { OnboardingService } from "@/server/services/onboarding.service";
+import { redirect } from "next/navigation";
 import { getCachedBotSessionsByCalendarEventIds } from "@/server/cache/bot-sessions.cache";
 import { getCachedCalendarMeetings } from "@/server/cache/calendar-meetings.cache";
 import { getCachedDashboardOverview } from "@/server/cache/dashboard.cache";
@@ -16,51 +18,17 @@ import {
   getCachedTaskStats,
   getCachedTasksWithContext,
 } from "@/server/cache/task.cache";
-import { OnboardingService } from "@/server/services/onboarding.service";
 import { getTranslations } from "next-intl/server";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 async function DashboardContent() {
   const t = await getTranslations("dashboard");
-  const authResult = await getBetterAuthSession();
+  const { user, organizationId, userTeamIds } = await requirePermission(
+    permissions.hasRole("viewer"),
+  );
 
-  if (authResult.isErr()) {
-    logger.error("Failed to get user session in Dashboard", {
-      component: "DashboardContent",
-      error: authResult.error,
-    });
-
-    return (
-      <div className="container mx-auto max-w-4xl px-4 py-8">
-        <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold text-destructive">
-            {t("unableToLoad")}
-          </h1>
-          <p className="text-muted-foreground">
-            {t("unableToLoadDescription")}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  const { user, organization, userTeamIds } = authResult.value;
-  if (!user) {
-    logger.warn("User session returned null in Dashboard", {
-      component: "DashboardContent",
-    });
-
-    return (
-      <div className="container mx-auto max-w-4xl px-4 py-8">
-        <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold">{t("welcomeToInovy")}</h1>
-          <p className="text-muted-foreground">{t("pleaseLogIn")}</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Ensure onboarding record exists and redirect if not completed
   try {
     await OnboardingService.ensureOnboardingRecordExists(user.id);
   } catch (error) {
@@ -70,25 +38,10 @@ async function DashboardContent() {
     });
   }
 
-  if (!organization) {
-    logger.warn("User has no organization in Dashboard", {
-      component: "DashboardContent",
-      userId: user.id,
-    });
-
-    return (
-      <div className="container mx-auto max-w-4xl px-4 py-8">
-        <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold">{t("organizationRequired")}</h1>
-          <p className="text-muted-foreground">
-            {t("organizationRequiredDescription")}
-          </p>
-        </div>
-      </div>
-    );
+  if (!user.onboardingCompleted) {
+    redirect("/onboarding");
   }
 
-  const organizationId = organization.id;
   const now = new Date();
   const endOfDay = new Date(now);
   endOfDay.setHours(23, 59, 59, 999);
@@ -170,9 +123,5 @@ async function DashboardContent() {
 }
 
 export default async function Home() {
-  return (
-    <ProtectedPage>
-      <DashboardContent />
-    </ProtectedPage>
-  );
+  return <DashboardContent />;
 }

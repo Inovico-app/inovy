@@ -1,8 +1,8 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { resolveAuthContext } from "@/lib/auth-context";
 import { ComplianceDashboardQueries } from "@/server/data-access/compliance-dashboard.queries";
 import { ComplianceDashboard } from "@/features/admin/components/compliance/compliance-dashboard";
-import { redirect } from "next/navigation";
+import { permissions } from "@/lib/permissions/engine";
+import { requirePermission } from "@/lib/permissions/require-permission";
 import { Suspense } from "react";
 import type { Metadata } from "next";
 
@@ -12,12 +12,9 @@ export const metadata: Metadata = {
 };
 
 async function ComplianceDashboardContent() {
-  const authResult = await resolveAuthContext("ComplianceDashboard");
-  if (authResult.isErr()) {
-    redirect("/");
-  }
-
-  const { organizationId } = authResult.value;
+  const { organizationId } = await requirePermission(
+    permissions.can("admin:all"),
+  );
   const data =
     await ComplianceDashboardQueries.getFullDashboard(organizationId);
 

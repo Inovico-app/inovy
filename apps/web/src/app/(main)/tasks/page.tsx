@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { TasksListServer } from "@/features/tasks/components/tasks-list-server";
+import { permissions } from "@/lib/permissions/engine";
+import { requirePermission } from "@/lib/permissions/require-permission";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 export const metadata: Metadata = { title: "Team Tasks" };
 
 export default async function TasksPage() {
+  await requirePermission(permissions.hasRole("viewer"));
   const t = await getTranslations("tasks");
 
   return (

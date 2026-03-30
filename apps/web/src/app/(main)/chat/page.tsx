@@ -1,47 +1,39 @@
 import type { Metadata } from "next";
-import { ProtectedPage } from "@/components/protected-page";
 import { Card } from "@/components/ui/card";
 
 export const metadata: Metadata = { title: "Chat" };
 import { UnifiedChatInterface } from "@/features/chat/components/unified-chat-interface";
-import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { canAccessOrganizationChat } from "@/lib/rbac/rbac";
-import { getCachedAgentConfig } from "@/server/cache/organization.cache";
+import { permissions } from "@/lib/permissions/engine";
+import { requirePermission } from "@/lib/permissions/require-permission";
+import {
+  getCachedAgentConfig,
+  getCachedOrganizationById,
+} from "@/server/cache/organization.cache";
 import { getCachedUserProjects } from "@/server/cache/project.cache";
 import { AlertCircle } from "lucide-react";
 import { getTranslations } from "next-intl/server";
-import { redirect } from "next/navigation";
 
-async function ChatPageContent() {
-  // Get session with roles
+export default async function ChatPage() {
   const t = await getTranslations("chat");
-  const sessionResult = await getBetterAuthSession();
-
-  if (sessionResult.isErr() || !sessionResult.value.isAuthenticated) {
-    redirect("/api/auth/login");
-  }
-
-  const session = sessionResult.value;
-
-  if (!session.user) {
-    redirect("/api/auth/login");
-  }
+  const { user, organizationId, userTeamIds } = await requirePermission(
+    permissions.hasRole("user"),
+  );
 
   // Check if user is admin
-  const isAdmin = canAccessOrganizationChat(session.user);
+  const isAdmin = canAccessOrganizationChat(user);
 
   // Get user's projects (cached), filtered by team context
-  const projects = session.organization
-    ? await getCachedUserProjects(session.organization.id, {
-        userTeamIds: session.userTeamIds,
-        user: session.user,
-      })
-    : [];
+  const projects = await getCachedUserProjects(organizationId, {
+    userTeamIds,
+    user,
+  });
 
   // Check if agent is enabled
-  const agentEnabled = session.organization
-    ? await getCachedAgentConfig(session.organization.id)
-    : true;
+  const [agentEnabled, organization] = await Promise.all([
+    getCachedAgentConfig(organizationId),
+    getCachedOrganizationById(organizationId),
+  ]);
 
   // If no projects and not admin, show error
   if (projects.length === 0 && !isAdmin) {
@@ -72,16 +64,8 @@ async function ChatPageContent() {
         defaultContext={isAdmin ? "organization" : "project"}
         defaultProjectId={projects[0]?.id}
         agentEnabled={agentEnabled}
-        organizationName={session.organization?.name}
+        organizationName={organization?.name}
       />
     </div>
-  );
-}
-
-export default function OrganizationChatPage() {
-  return (
-    <ProtectedPage>
-      <ChatPageContent />
-    </ProtectedPage>
   );
 }

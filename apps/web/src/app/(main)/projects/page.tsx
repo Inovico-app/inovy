@@ -12,7 +12,9 @@ import { filterProjectsBySearch } from "@/lib/filters/project-filters";
 import { logger } from "@/lib/logger";
 import type { AllowedStatus } from "@/server/data-access/projects.queries";
 import type { ProjectWithRecordingCountDto } from "@/server/dto/project.dto";
-import { resolveAuthContext } from "@/lib/auth-context";
+import type { AuthContext } from "@/lib/auth-context";
+import { permissions } from "@/lib/permissions/engine";
+import { requirePermission } from "@/lib/permissions/require-permission";
 import { getCachedProjectsWithRecordingCount } from "@/server/cache/project.cache";
 import { getCachedTeamsWithMemberCounts } from "@/server/cache/team.cache";
 import {
@@ -30,33 +32,25 @@ interface ProjectsListProps {
   searchQuery?: string;
   status?: AllowedStatus;
   teamFilter?: string;
+  auth: AuthContext;
 }
 
 async function ProjectsList({
   searchQuery,
   status = "active",
   teamFilter,
+  auth,
 }: ProjectsListProps) {
   const t = await getTranslations("projects");
-  const authResult = await resolveAuthContext("ProjectsList");
-  if (authResult.isErr()) {
-    return (
-      <div className="container mx-auto py-8 px-4">
-        <div className="text-center">
-          <p className="text-red-500">{t("authRequired")}</p>
-        </div>
-      </div>
-    );
-  }
 
   let allProjects: ProjectWithRecordingCountDto[];
   try {
     allProjects = await getCachedProjectsWithRecordingCount(
-      authResult.value.organizationId,
+      auth.organizationId,
       status,
       {
-        userTeamIds: authResult.value.userTeamIds,
-        user: authResult.value.user,
+        userTeamIds: auth.userTeamIds,
+        user: auth.user,
       },
     );
   } catch (error) {
@@ -76,8 +70,8 @@ async function ProjectsList({
 
   // Resolve team names
   const teamsData = await getCachedTeamsWithMemberCounts(
-    authResult.value.organizationId,
-    authResult.value,
+    auth.organizationId,
+    auth,
   );
   const teamNameMap = new Map(teamsData.map((t) => [t.id, t.name]));
 
@@ -179,12 +173,14 @@ async function ProjectsList({
 
 async function ProjectsPageContent({
   searchParamsPromise,
+  auth,
 }: {
   searchParamsPromise: Promise<{
     search?: string;
     status?: string;
     team?: string;
   }>;
+  auth: AuthContext;
 }) {
   const t = await getTranslations("projects");
   const { search, status, team } = await searchParamsPromise;
@@ -193,15 +189,9 @@ async function ProjectsPageContent({
   ) as AllowedStatus;
 
   // Fetch teams for the filter dropdown
-  const pageAuthResult = await resolveAuthContext("ProjectsPage");
-  const filterTeams = pageAuthResult.isOk()
-    ? (
-        await getCachedTeamsWithMemberCounts(
-          pageAuthResult.value.organizationId,
-          pageAuthResult.value,
-        )
-      ).map((t) => ({ id: t.id, name: t.name }))
-    : [];
+  const filterTeams = (
+    await getCachedTeamsWithMemberCounts(auth.organizationId, auth)
+  ).map((t) => ({ id: t.id, name: t.name }));
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -231,6 +221,7 @@ async function ProjectsPageContent({
           searchQuery={search}
           status={projectStatus}
           teamFilter={team}
+          auth={auth}
         />
       </div>
     </div>
@@ -241,9 +232,14 @@ interface ProjectsPageProps {
   searchParams: Promise<{ search?: string; status?: string; team?: string }>;
 }
 
-export default function ProjectsPage({ searchParams }: ProjectsPageProps) {
-  // CACHE COMPONENTS: Wrap dynamic content in Suspense to enable static shell generation
-  // ProjectsList accesses auth data to get projects, making it dynamic
+export default async function ProjectsPage({
+  searchParams,
+}: ProjectsPageProps) {
+  const { user, member, organizationId, userTeamIds } = await requirePermission(
+    permissions.hasRole("viewer"),
+  );
+  const auth: AuthContext = { user, member, organizationId, userTeamIds };
+
   return (
     <Suspense
       fallback={
@@ -263,7 +259,7 @@ export default function ProjectsPage({ searchParams }: ProjectsPageProps) {
         </div>
       }
     >
-      <ProjectsPageContent searchParamsPromise={searchParams} />
+      <ProjectsPageContent searchParamsPromise={searchParams} auth={auth} />
     </Suspense>
   );
 }
