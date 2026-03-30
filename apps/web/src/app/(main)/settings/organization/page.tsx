@@ -33,8 +33,6 @@ async function OrganizationContent() {
   const t = await getTranslations("settings.organization");
   const { organizationId } = await requirePermission(isAdmin);
 
-  const canEdit = true;
-
   // Parallel data fetching
   const [
     [membersResult, invitationsResult],
@@ -69,16 +67,14 @@ async function OrganizationContent() {
         },
       ),
     ]),
-    canEdit
-      ? OrganizationQueries.findByIdDirect(organizationId).catch((error) => {
-          logger.error("Failed to fetch organization record", {
-            component: "OrganizationPage",
-            organizationId,
-            error: error instanceof Error ? error : new Error(String(error)),
-          });
-          return null;
-        })
-      : Promise.resolve(null),
+    OrganizationQueries.findByIdDirect(organizationId).catch((error) => {
+      logger.error("Failed to fetch organization record", {
+        component: "OrganizationPage",
+        organizationId,
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
+      return null;
+    }),
   ]);
 
   const members = membersResult.isOk() ? membersResult.value : [];
@@ -131,7 +127,7 @@ async function OrganizationContent() {
             <CardTitle className="text-base font-medium">
               {t("members")}
             </CardTitle>
-            {canEdit && <InviteUserDialog />}
+            <InviteUserDialog />
           </div>
         </CardHeader>
         <CardContent>
@@ -232,7 +228,7 @@ async function OrganizationContent() {
       <OrganizationInstructionsSection
         initialInstructions={instructions}
         organizationId={organizationId}
-        canEdit={canEdit}
+        canEdit
       />
       <OrganizationKnowledgeBaseSection
         canEdit
@@ -254,15 +250,13 @@ async function OrganizationContent() {
         membersContent={membersContent}
         aiContent={aiContent}
       />
-      {canEdit && (
-        <div className="mt-6">
-          <OrganizationDangerZone
-            organizationId={organizationId}
-            organizationName={orgName}
-            scheduledDeletionAt={scheduledDeletionAt}
-          />
-        </div>
-      )}
+      <div className="mt-6">
+        <OrganizationDangerZone
+          organizationId={organizationId}
+          organizationName={orgName}
+          scheduledDeletionAt={scheduledDeletionAt}
+        />
+      </div>
     </>
   );
 }

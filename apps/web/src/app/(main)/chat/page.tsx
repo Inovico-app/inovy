@@ -70,6 +70,6 @@ async function ChatPageContent() {
   );
 }
 
-export default function OrganizationChatPage() {
-  return <ChatPageContent />;
+export default async function OrganizationChatPage() {
+  return await ChatPageContent();
 }

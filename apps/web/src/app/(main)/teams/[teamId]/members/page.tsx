@@ -20,7 +20,7 @@ export async function generateMetadata({
 }
 import { getBetterAuthSession } from "@/lib/better-auth-session";
 import { requirePermission } from "@/lib/permissions/require-permission";
-import { canManageTeam } from "@/lib/permissions/presets";
+import { canAccessTeam } from "@/lib/permissions/presets";
 import { TeamQueries } from "@/server/data-access/teams.queries";
 import { Suspense } from "react";
 
@@ -37,7 +37,7 @@ async function TeamMembersContainer({
 }) {
   const { teamId } = await params;
 
-  await requirePermission(canManageTeam, { teamId });
+  await requirePermission(canAccessTeam, { teamId });
 
   return <TeamMemberManagement teamId={teamId} />;
 }

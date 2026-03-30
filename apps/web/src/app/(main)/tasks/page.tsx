@@ -8,7 +8,7 @@ import { Suspense } from "react";
 export const metadata: Metadata = { title: "Team Tasks" };
 
 export default async function TasksPage() {
-  await requirePermission(permissions.hasRole("user"));
+  await requirePermission(permissions.hasRole("viewer"));
   const t = await getTranslations("tasks");
 
   return (

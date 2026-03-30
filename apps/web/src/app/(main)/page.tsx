@@ -6,8 +6,10 @@ import { DashboardRecentRecordings } from "@/features/dashboard/components/dashb
 import { DashboardStats } from "@/features/dashboard/components/dashboard-stats";
 import { DashboardUpcomingMeetings } from "@/features/dashboard/components/dashboard-upcoming-meetings";
 import { filterTasksByStatus } from "@/lib/filters/task-filters";
+import { logger } from "@/lib/logger";
 import { permissions } from "@/lib/permissions/engine";
 import { requirePermission } from "@/lib/permissions/require-permission";
+import { OnboardingService } from "@/server/services/onboarding.service";
 import { getCachedBotSessionsByCalendarEventIds } from "@/server/cache/bot-sessions.cache";
 import { getCachedCalendarMeetings } from "@/server/cache/calendar-meetings.cache";
 import { getCachedDashboardOverview } from "@/server/cache/dashboard.cache";
@@ -24,6 +26,22 @@ async function DashboardContent() {
   const { user, organizationId, userTeamIds } = await requirePermission(
     permissions.hasRole("viewer"),
   );
+
+  // Ensure onboarding record exists and redirect if not completed
+  try {
+    await OnboardingService.ensureOnboardingRecordExists(user.id);
+  } catch (error) {
+    logger.error("Failed to ensure onboarding record exists", {
+      userId: user.id,
+      error,
+    });
+  }
+
+  if (!user.onboardingCompleted) {
+    const { redirect } = await import("next/navigation");
+    redirect("/onboarding");
+  }
+
   const now = new Date();
   const endOfDay = new Date(now);
   endOfDay.setHours(23, 59, 59, 999);
